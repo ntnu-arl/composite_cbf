@@ -54,6 +54,8 @@ Eigen::Vector3f& CbfSafetyFilter::apply_filter(double ts_now)
     if (n == 0)
         return _filtered_input;
 
+    Eigen::Vector3f body_acc = _filtered_input;
+
     // composite collision CBF
     // nu1_i
     _nu1.clear();
@@ -90,7 +92,7 @@ Eigen::Vector3f& CbfSafetyFilter::apply_filter(double ts_now)
     Lg_h /= exp_sum;
 
     // L_{g}h(x) * u, u = k_n(x) = a
-    float Lg_h_u = Lg_h.dot(_filtered_input);
+    float Lg_h_u = Lg_h.dot(body_acc);
 
     // horizontal FoV CBF
     Eigen::Vector3f e1(sin(_fov_h), cos(_fov_h), 0.f);
@@ -119,82 +121,82 @@ Eigen::Vector3f& CbfSafetyFilter::apply_filter(double ts_now)
         }
 
         acceleration_correction = (eta > 0.f ? eta : 0.f) * Lg_h;
-        _unfiltered_ouput = _filtered_input + acceleration_correction;
+        _unfiltered_ouput = body_acc + acceleration_correction;
 
-        // ========================
-        // ========================
-        // ========================
-        // implement the FoV constraints. This is done in a sub-optima fashoin by projecting the acceleration after the collision filtering onto the feasible subspace.
-        float violation1 = Lf_h1 + Lg_h1.dot(_unfiltered_ouput) + _fov_alpha * h1;
-        float violation2 = Lf_h2 + Lg_h2.dot(_unfiltered_ouput) + _fov_alpha * h2;
+        // // ========================
+        // // ========================
+        // // ========================
+        // // implement the FoV constraints. This is done in a sub-optima fashoin by projecting the acceleration after the collision filtering onto the feasible subspace.
+        // float violation1 = Lf_h1 + Lg_h1.dot(_unfiltered_ouput) + _fov_alpha * h1;
+        // float violation2 = Lf_h2 + Lg_h2.dot(_unfiltered_ouput) + _fov_alpha * h2;
 
 
-        // Project _unfiltered_output to make both violations non-negative
-        // TODO: This simplified version assumes the FoV is 90 degrees or larger
-        if (violation1 < 0.f || violation2 < 0.f) {
-            if (violation1 < 0.f && violation2 >= 0.f) {
-                // // Solve for the first constraint
-                // Eigen::Matrix<float, 1, 3> A1;
-                // A1.setRow(0, Lg_h1);
-                // Eigen::Vector<float, 1> b1;
-                // b1(0) = -violation1;
+        // // Project _unfiltered_output to make both violations non-negative
+        // // TODO: This simplified version assumes the FoV is 90 degrees or larger
+        // if (violation1 < 0.f || violation2 < 0.f) {
+        //     if (violation1 < 0.f && violation2 >= 0.f) {
+        //         // // Solve for the first constraint
+        //         // Eigen::Matrix<float, 1, 3> A1;
+        //         // A1.setRow(0, Lg_h1);
+        //         // Eigen::Vector<float, 1> b1;
+        //         // b1(0) = -violation1;
 
-                // Analytical solution for single constraint: delta = -(Ax-b)A^T/(AA^T)
-                Eigen::Vector3f A1_T = Lg_h1;
-                float A1_A1T = Lg_h1.dot(Lg_h1);
-                Eigen::Vector3f delta1 = (A1_A1T > 1e-6f) ? (-violation1 * A1_T / A1_A1T) : Eigen::Vector3f();
+        //         // Analytical solution for single constraint: delta = -(Ax-b)A^T/(AA^T)
+        //         Eigen::Vector3f A1_T = Lg_h1;
+        //         float A1_A1T = Lg_h1.dot(Lg_h1);
+        //         Eigen::Vector3f delta1 = (A1_A1T > 1e-6f) ? (-violation1 * A1_T / A1_A1T) : Eigen::Vector3f();
 
-                _unfiltered_ouput += delta1;
+        //         _unfiltered_ouput += delta1;
 
-            } else if (violation2 < 0.f && violation1 >= 0.f) {
-                // // Solve for the second constraint
-                // Eigen::Matrix<float, 1, 3> A2;
-                // A2.setRow(0, Lg_h2);
-                // Eigen::Vector<float, 1> b2;
-                // b2(0) = -violation2;
+        //     } else if (violation2 < 0.f && violation1 >= 0.f) {
+        //         // // Solve for the second constraint
+        //         // Eigen::Matrix<float, 1, 3> A2;
+        //         // A2.setRow(0, Lg_h2);
+        //         // Eigen::Vector<float, 1> b2;
+        //         // b2(0) = -violation2;
 
-                // Analytical solution for single constraint: delta = -(Ax-b)A^T/(AA^T)
-                Eigen::Vector3f A2_T = Lg_h2;
-                float A2_A2T = Lg_h2.dot(Lg_h2);
-                Eigen::Vector3f delta2 = (A2_A2T > 1e-6f) ? (-violation2 * A2_T / A2_A2T) : Eigen::Vector3f();
+        //         // Analytical solution for single constraint: delta = -(Ax-b)A^T/(AA^T)
+        //         Eigen::Vector3f A2_T = Lg_h2;
+        //         float A2_A2T = Lg_h2.dot(Lg_h2);
+        //         Eigen::Vector3f delta2 = (A2_A2T > 1e-6f) ? (-violation2 * A2_T / A2_A2T) : Eigen::Vector3f();
 
-                _unfiltered_ouput += delta2;
+        //         _unfiltered_ouput += delta2;
 
-            } else {
-                // Solve for both constraints
-                Eigen::Matrix<float, 2, 3> A;
-                A(0,0) = Lg_h1(0);
-                A(0,1) = Lg_h1(1);
-                A(0,2) = Lg_h1(2);
-                A(1,0) = Lg_h2(0);
-                A(1,1) = Lg_h2(1);
-                A(1,2) = Lg_h2(2);
-                Eigen::Vector2f b;
-                b(0) = -violation1;
-                b(1) = -violation2;
+        //     } else {
+        //         // Solve for both constraints
+        //         Eigen::Matrix<float, 2, 3> A;
+        //         A(0,0) = Lg_h1(0);
+        //         A(0,1) = Lg_h1(1);
+        //         A(0,2) = Lg_h1(2);
+        //         A(1,0) = Lg_h2(0);
+        //         A(1,1) = Lg_h2(1);
+        //         A(1,2) = Lg_h2(2);
+        //         Eigen::Vector2f b;
+        //         b(0) = -violation1;
+        //         b(1) = -violation2;
 
-                // Direct analytical solution for two constraints using A^T(AA^T)^(-1)b
-                Eigen::Matrix2f AAT = A * A.transpose();
-                float det = AAT(0,0)*AAT(1,1) - AAT(0,1)*AAT(1,0);
+        //         // Direct analytical solution for two constraints using A^T(AA^T)^(-1)b
+        //         Eigen::Matrix2f AAT = A * A.transpose();
+        //         float det = AAT(0,0)*AAT(1,1) - AAT(0,1)*AAT(1,0);
 
-                Eigen::Matrix2f AAT_inv;
-                AAT_inv(0,0) = AAT(1,1)/det;
-                AAT_inv(0,1) = -AAT(0,1)/det;
-                AAT_inv(1,0) = -AAT(1,0)/det;
-                AAT_inv(1,1) = AAT(0,0)/det;
-                Eigen::Vector3f delta = A.transpose() * (AAT_inv * b);
+        //         Eigen::Matrix2f AAT_inv;
+        //         AAT_inv(0,0) = AAT(1,1)/det;
+        //         AAT_inv(0,1) = -AAT(0,1)/det;
+        //         AAT_inv(1,0) = -AAT(1,0)/det;
+        //         AAT_inv(1,1) = AAT(0,0)/det;
+        //         Eigen::Vector3f delta = A.transpose() * (AAT_inv * b);
 
-                _unfiltered_ouput += delta;
-            }
-        }
-        // ========================
-        // ========================
-        // ========================
+        //         _unfiltered_ouput += delta;
+        //     }
+        // }
+        // // ========================
+        // // ========================
+        // // ========================
     }
     else
     {
-        ROS_ERROR("[composite_cbf] QP soltion is currently not working with FoV constraints! no filter performed");
-        return _filtered_input;
+        // ROS_ERROR("[composite_cbf] QP soltion is currently not working with FoV constraints! no filter performed");
+        // return body_acc;
 
         // solve QP
         // quadratic cost x^T*H*x
@@ -242,10 +244,10 @@ Eigen::Vector3f& CbfSafetyFilter::apply_filter(double ts_now)
                 break;
             }
         }
+            _unfiltered_ouput = body_acc + acceleration_correction;
     }
 
     // clamp and low pass acceleration output
-    _unfiltered_ouput = _filtered_input + acceleration_correction;
     clampAccSetpoint(_unfiltered_ouput);
     _filtered_ouput = (1.f - _lp_gain_out) * _filtered_ouput + _lp_gain_out * _unfiltered_ouput;
 

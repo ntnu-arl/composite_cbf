@@ -5,10 +5,14 @@ kappa: 70
 gamma: 40
 alpha: 2
 fov_alpha: 6
-lp_gain_in: 0.4
+fov_slack: 200
+lp_gain_in: 0.7
 lp_gain_out: 0.6
 clamp_xy: 3
-clamp_z: 3
+clamp_z: 1
+gain_x: 1
+gain_y: 1
+gain_z: 3
 output_frame_viz: base_link
 analytical_sol: true
-ctrl_freq: 50
+ctrl_freq: 100

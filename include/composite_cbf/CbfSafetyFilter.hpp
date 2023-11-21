@@ -34,10 +34,10 @@ public:
     void setGamma(float gamma) { _gamma = gamma; }
     void setAlpha(float alpha) { _alpha = alpha; }
     void setFovAlpha(float fov_alpha) { _fov_alpha = fov_alpha; }
-    // void setFovSlack(float fov_slack) { _fov_slack = fov_slack; }
+    void setFovSlack(float fov_slack) { _fov_slack = fov_slack; }
     void setLpGainIn(float lp_gain_in) { _lp_gain_in = lp_gain_in; }
     void setLpGainOut(float lp_gain_out) { _lp_gain_out = lp_gain_out; }
-    // void setQpGains(float gain_x, float gain_y, float gain_z) { _qp_gain_x = gain_x; _qp_gain_y = gain_y; _qp_gain_z = gain_z; }
+    void setQpGains(float gain_x, float gain_y, float gain_z) { _qp_gain_x = gain_x; _qp_gain_y = gain_y; _qp_gain_z = gain_z; }
     void setClampXY(float max_acc_xy) { _max_acc_xy = max_acc_xy; }
     void setClampZ(float max_acc_z) { _max_acc_z = max_acc_z; }
     void setAnalytical(bool analytical_sol) { _analytical_sol = analytical_sol; }
