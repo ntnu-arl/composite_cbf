@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<package format="2">
+    <name>composite_cbf</name>
+    <version>1.0.0</version>
+    <description>The composite_cbf package.</description>
+
+    <maintainer email="martin.jacquet@ntnu.no">Martin Jacquet</maintainer>
+    <license>TODO</license>
+
+    <buildtool_depend>catkin</buildtool_depend>
+    <depend>roscpp</depend>
+    <depend>sensor_msgs</depend>
+    <depend>geometry_msgs</depend>
+    <depend>nav_msgs</depend>
+    <depend>mavros_msgs</depend>
+</package>

@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<launch>
+    <node pkg="composite_cbf" type="composite_cbf_node" name="composite_cbf" output="screen">
+        <rosparam file="$(find composite_cbf)/config/jacamar.yaml" command="load"/>
+        <remap from="/composite_cbf/obstacles" to="/cbf_pc_selector/selected_pc"/>
+    </node>
+</launch>

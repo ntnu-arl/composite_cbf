@@ -1,0 +1,11 @@
+fov_h: 0.7592  # [rad]
+epsilon: 0.7
+pole_0: -2.5
+kappa: 70
+gamma: 40
+alpha: 2
+fov_alpha: 6
+lp_gain_in: 0.4
+lp_gain_out: 0.6
+clamp_xy: 3
+clamp_z: 3
