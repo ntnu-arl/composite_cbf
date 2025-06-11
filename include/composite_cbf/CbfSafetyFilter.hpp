@@ -4,14 +4,12 @@
 #include <cmath>
 #include <vector>
 #include <Eigen/Dense>
-#include <chrono>
+#include <qpOASES.hpp>
 
-// #include <qpOASES.hpp>
-//
-// using namespace qpOASES;
-//
-// #define NV 5  // nb of QP variables
-// #define NC 5  // nb of QP consntraints
+using namespace qpOASES;
+
+#define NV 5  // nb of QP variables
+#define NC 5  // nb of QP consntraints
 #define CBF_MAX_OBSTACLES 200
 #define OBSTACLE_TIMEOUT_SEC 1  // 1 sec
 
@@ -25,7 +23,7 @@ public:
 
     void filter(Eigen::Vector3f& acceleration_setpoint);
 
-    void setObstacles(std::vector<Eigen::Vector3f>& obstacles, std::chrono::time_point<std::chrono::system_clock>& ts);
+    void setObstacles(std::vector<Eigen::Vector3f>& obstacles, double ts);
     void setAttVel(Eigen::Matrix3f& R_WB, Eigen::Vector3f& body_vel);
 
     void setFovH(float fov_h) { _fov_h = fov_h; }
@@ -41,14 +39,16 @@ public:
     // void setQpGains(float gain_x, float gain_y, float gain_z) { _qp_gain_x = gain_x; _qp_gain_y = gain_y; _qp_gain_z = gain_z; }
     void setClampXY(float max_acc_xy) { _max_acc_xy = max_acc_xy; }
     void setClampZ(float max_acc_z) { _max_acc_z = max_acc_z; }
+    void setAnalytical(bool analytical_sol) { _analytical_sol = analytical_sol; }
+
+    Eigen::Matrix3f _R_BV;
 
 private:
     void timeoutObstacles();
 
-    std::chrono::time_point<std::chrono::system_clock> _ts_obs;
+    double _ts_obs;
     std::vector<Eigen::Vector3f> _obstacles;
     Eigen::Vector3f _body_velocity;
-    Eigen::Matrix3f _R_WB, _R_BW, _R_VB, _R_BV;
 
     Eigen::Vector3f _filtered_input;
     Eigen::Vector3f _filtered_ouput;
@@ -70,6 +70,7 @@ private:
     float _qp_gain_z;
     float _max_acc_xy;
     float _max_acc_z;
+    bool _analytical_sol;
 
     void clampAccSetpoint(Eigen::Vector3f& acceleration_setpoint);
     float saturate(float x);

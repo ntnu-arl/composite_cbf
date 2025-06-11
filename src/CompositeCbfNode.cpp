@@ -8,6 +8,7 @@ CompositeCbfNode::CompositeCbfNode()
     _cbf = CbfSafetyFilter();
 
     // params
+    _nh.getParam("/composite_cbf/output_frame_viz", _frame_body);
     float fov_h;
     _nh.getParam("/composite_cbf/fov_h", fov_h);
     _cbf.setFovH(fov_h);
@@ -41,12 +42,18 @@ CompositeCbfNode::CompositeCbfNode()
     float clamp_z;
     _nh.getParam("/composite_cbf/clamp_z", clamp_z);
     _cbf.setClampZ(clamp_z);
+    bool analytical_sol;
+    _nh.getParam("/composite_cbf/analytical_sol", analytical_sol);
+    _cbf.setAnalytical(analytical_sol);
 
     // sub & pub
     _obstacle_sub = _nh.subscribe("/composite_cbf/obstacles", 1, &CompositeCbfNode::obstacleCb, this);
     _odometry_sub = _nh.subscribe("/composite_cbf/odometry", 1, &CompositeCbfNode::odomCb, this);
     _command_sub = _nh.subscribe("/composite_cbf/nominal_cmd", 1, &CompositeCbfNode::cmdCb, this);
-    _command_pub = _nh.advertise<sensor_msgs::PointCloud2>("/composite_cbf/safe_cmd", 1);
+    _command_pub_twist = _nh.advertise<geometry_msgs::Twist>("/composite_cbf/safe_cmd", 1);
+    _command_pub_postarget = _nh.advertise<mavros_msgs::PositionTarget>("/composite_cbf/safe_cmd", 1);
+    _output_viz_pub = _nh.advertise<geometry_msgs::TwistStamped>("/composite_cbf/output_viz", 1);
+    _input_viz_pub = _nh.advertise<geometry_msgs::TwistStamped>("/composite_cbf/input_viz", 1);
 }
 
 
@@ -54,17 +61,11 @@ void CompositeCbfNode::obstacleCb(const sensor_msgs::PointCloud2ConstPtr& msg)
 {
     size_t nb_points = msg->height * msg->width;
 
-    // sensor_msgs::PointCloud2 cloud_msg = *msg;
-    // sensor_msgs::PointCloud2Iterator<float> iter_x(cloud_msg, "x");
-    // sensor_msgs::PointCloud2Iterator<float> iter_y(cloud_msg, "y");
-    // sensor_msgs::PointCloud2Iterator<float> iter_z(cloud_msg, "z");
-
     size_t point_step = msg->point_step;
     const uint8_t* data_ptr = &msg->data[0];
 
     std::vector<Eigen::Vector3f> obstacles;
-    // for (size_t i=0; i>nb_points; ++i, ++iter_x, ++iter_y, ++iter_z)
-    for (size_t i=0; i>nb_points; ++i)
+    for (size_t i=0; i<nb_points; ++i)
     {
         const uint8_t* point_ptr = data_ptr + i * point_step;
         float x, y, z;
@@ -72,14 +73,10 @@ void CompositeCbfNode::obstacleCb(const sensor_msgs::PointCloud2ConstPtr& msg)
         memcpy(&y, point_ptr + msg->fields[1].offset, sizeof(float));
         memcpy(&z, point_ptr + msg->fields[2].offset, sizeof(float));
 
-        // obstacles.push_back(Eigen::Vector3f(*iter_x, *iter_y, *iter_z));
         obstacles.push_back(Eigen::Vector3f(x, y, z));
     }
 
-    std::chrono::seconds sec(msg->header.stamp.sec);
-    std::chrono::nanoseconds nsec(msg->header.stamp.nsec);
-    std::chrono::time_point<std::chrono::system_clock> ts { sec + nsec };
-
+    double ts = msg->header.stamp.toSec();
     _cbf.setObstacles(obstacles, ts);
 }
 
@@ -104,36 +101,60 @@ void CompositeCbfNode::odomCb(const nav_msgs::OdometryConstPtr& msg)
 }
 
 
-void CompositeCbfNode::cmdCb(const geometry_msgs::TwistStampedConstPtr& msg)
+void CompositeCbfNode::cmdCb(const geometry_msgs::TwistConstPtr& msg)
 {
     Eigen::Vector3f acceleration_setpoint(
-        msg->twist.linear.x,
-        msg->twist.linear.y,
-        msg->twist.linear.z
+        msg->linear.x,
+        msg->linear.y,
+        msg->linear.z
     );
+    acceleration_setpoint = _cbf._R_BV * acceleration_setpoint;  // TODO for now joystick input is actually vehicle frame
 
+    // publish viz input msg
+    geometry_msgs::TwistStamped msg_viz_in;
+    msg_viz_in.header.stamp = ros::Time::now();
+    msg_viz_in.header.frame_id = _frame_body;
+    msg_viz_in.twist.linear.x = acceleration_setpoint(0);
+    msg_viz_in.twist.linear.y = acceleration_setpoint(1);
+    msg_viz_in.twist.linear.z = acceleration_setpoint(2);
+    _input_viz_pub.publish(msg_viz_in);
+
+    // cbf filtering
     _cbf.filter(acceleration_setpoint);
 
-    mavros_msgs::PositionTarget pos_target_msg;
-    pos_target_msg.header.stamp = ros::Time::now();
-    pos_target_msg.header.frame_id = "base_link";
-    pos_target_msg.coordinate_frame = mavros_msgs::PositionTarget::FRAME_BODY_NED;
-
-    pos_target_msg.type_mask =
+    // publish mavros msg
+    mavros_msgs::PositionTarget msg_safe_postarget;
+    msg_safe_postarget.header.stamp = ros::Time::now();
+    msg_safe_postarget.header.frame_id = _frame_body;
+    msg_safe_postarget.coordinate_frame = mavros_msgs::PositionTarget::FRAME_BODY_NED;
+    msg_safe_postarget.type_mask =
         mavros_msgs::PositionTarget::IGNORE_PX |
         mavros_msgs::PositionTarget::IGNORE_PY |
         mavros_msgs::PositionTarget::IGNORE_PZ |
         mavros_msgs::PositionTarget::IGNORE_VX |
         mavros_msgs::PositionTarget::IGNORE_VY |
         mavros_msgs::PositionTarget::IGNORE_VZ |
-       mavros_msgs::PositionTarget::IGNORE_YAW;
+        mavros_msgs::PositionTarget::IGNORE_YAW;
+    msg_safe_postarget.acceleration_or_force.x = acceleration_setpoint(0);
+    msg_safe_postarget.acceleration_or_force.y = acceleration_setpoint(1);
+    msg_safe_postarget.acceleration_or_force.z = acceleration_setpoint(2);
+    msg_safe_postarget.yaw_rate = msg->angular.z;
+    _command_pub_postarget.publish(msg_safe_postarget);
 
-    pos_target_msg.acceleration_or_force.x = acceleration_setpoint(0);
-    pos_target_msg.acceleration_or_force.y = acceleration_setpoint(1);
-    pos_target_msg.acceleration_or_force.z = acceleration_setpoint(2);
-    pos_target_msg.yaw_rate = msg->twist.angular.z;
+    // publish twist msg
+    geometry_msgs::Twist msg_safe_twist;
+    msg_safe_twist.linear.x = acceleration_setpoint(0);
+    msg_safe_twist.linear.y = acceleration_setpoint(1);
+    msg_safe_twist.linear.z = acceleration_setpoint(2);
+    msg_safe_twist.angular.z = msg->angular.z;
+    _command_pub_twist.publish(msg_safe_twist);
 
-    _command_pub.publish(pos_target_msg);
+    // publish viz output msg
+    geometry_msgs::TwistStamped msg_viz_out;
+    msg_viz_out.header.stamp = ros::Time::now();
+    msg_viz_out.header.frame_id = _frame_body;
+    msg_viz_out.twist = msg_safe_twist;
+    _output_viz_pub.publish(msg_viz_out);
 }
 
 int main(int argc, char **argv)
