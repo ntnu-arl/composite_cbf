@@ -5,6 +5,6 @@
         <remap from="/composite_cbf/obstacles" to="/cbf_pc_selector/output_pc"/>
         <remap from="/composite_cbf/nominal_cmd" to="/cmd_joy"/>
         <remap from="/composite_cbf/odometry" to="/rmf_owl/odom"/>
-        <remap from="/composite_cbf/safe_cmd" to="/rmf_owl/cmd/acc"/>
+        <remap from="/composite_cbf/safe_cmd_twist" to="/rmf_owl/cmd/acc"/>
     </node>
 </launch>

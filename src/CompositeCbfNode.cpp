@@ -50,8 +50,8 @@ CompositeCbfNode::CompositeCbfNode()
     _obstacle_sub = _nh.subscribe("/composite_cbf/obstacles", 1, &CompositeCbfNode::obstacleCb, this);
     _odometry_sub = _nh.subscribe("/composite_cbf/odometry", 1, &CompositeCbfNode::odomCb, this);
     _command_sub = _nh.subscribe("/composite_cbf/nominal_cmd", 1, &CompositeCbfNode::cmdCb, this);
-    _command_pub_twist = _nh.advertise<geometry_msgs::Twist>("/composite_cbf/safe_cmd", 1);
-    _command_pub_postarget = _nh.advertise<mavros_msgs::PositionTarget>("/composite_cbf/safe_cmd", 1);
+    _command_pub_twist = _nh.advertise<geometry_msgs::Twist>("/composite_cbf/safe_cmd_twist", 1);
+    _command_pub_postarget = _nh.advertise<mavros_msgs::PositionTarget>("/composite_cbf/safe_cmd_postarget", 1);
     _output_viz_pub = _nh.advertise<geometry_msgs::TwistStamped>("/composite_cbf/output_viz", 1);
     _input_viz_pub = _nh.advertise<geometry_msgs::TwistStamped>("/composite_cbf/input_viz", 1);
 }
