@@ -4,7 +4,7 @@
         <rosparam file="$(find composite_cbf)/config/jacamar.yaml" command="load"/>
         <remap from="/composite_cbf/obstacles" to="/cbf_pc_selector/output_pc"/>
         <remap from="/composite_cbf/nominal_cmd" to="/cmd_joy"/>
-        <remap from="/composite_cbf/odometry" to="/rig/base_link/odom"/>
+        <remap from="/composite_cbf/odometry" to="/rig_node/base_link/odom"/>
         <remap from="/composite_cbf/safe_cmd_postarget" to="/mavros/setpoint_raw/local"/>
     </node>
 </launch>
