@@ -145,10 +145,13 @@ void CbfSafetyFilter::filter(Eigen::Vector3f& body_acceleration_setpoint)
 
             } else {
                 // Solve for both constraints
-                Eigen::Matrix<float, 2, 3> A {
-                    {Lg_h1(0), Lg_h1(1), Lg_h1(2)},
-                    {Lg_h2(0), Lg_h2(1), Lg_h2(2)}
-                };
+                Eigen::Matrix<float, 2, 3> A;
+                A(0,0) = Lg_h1(0);
+                A(0,1) = Lg_h1(1);
+                A(0,2) = Lg_h1(2);
+                A(1,0) = Lg_h2(0);
+                A(1,1) = Lg_h2(1);
+                A(1,2) = Lg_h2(2);
                 Eigen::Vector2f b;
                 b(0) = -violation1;
                 b(1) = -violation2;
