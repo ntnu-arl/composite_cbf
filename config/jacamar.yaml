@@ -11,3 +11,4 @@ clamp_xy: 3
 clamp_z: 3
 output_frame_viz: base_link
 analytical_sol: true
+ctrl_freq: 50

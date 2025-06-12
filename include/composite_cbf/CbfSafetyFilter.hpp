@@ -12,6 +12,7 @@ using namespace qpOASES;
 #define NC 5  // nb of QP consntraints
 #define CBF_MAX_OBSTACLES 200
 #define OBSTACLE_TIMEOUT_SEC 1  // 1 sec
+#define CMD_TIMEOUT_SEC 1  // 1 sec
 
 
 class CbfSafetyFilter
@@ -20,9 +21,9 @@ public:
     CbfSafetyFilter() = default;
     ~CbfSafetyFilter() = default;
 
+    Eigen::Vector3f& apply_filter(double ts_now);
 
-    void filter(Eigen::Vector3f& acceleration_setpoint);
-
+    void setCmd(Eigen::Vector3f& body_acceleration_setpoint, double ts);
     void setObstacles(std::vector<Eigen::Vector3f>& obstacles, double ts);
     void setAttVel(Eigen::Matrix3f& R_WB, Eigen::Vector3f& body_vel);
 
@@ -44,15 +45,18 @@ public:
     Eigen::Matrix3f _R_BV;
 
 private:
-    void timeoutObstacles();
+    void timeoutObstacles(double ts_now);
+    void timeoutCmd(double ts_now);
 
     double _ts_obs;
+    double _ts_cmd;
     std::vector<Eigen::Vector3f> _obstacles;
     Eigen::Vector3f _body_velocity;
 
-    Eigen::Vector3f _filtered_input;
-    Eigen::Vector3f _filtered_ouput;
-    Eigen::Vector3f _unfiltered_ouput;
+    Eigen::Vector3f _filtered_input = Eigen::Vector3f(0,0,0);
+    Eigen::Vector3f _unfiltered_ouput = Eigen::Vector3f(0,0,0);
+    Eigen::Vector3f _filtered_ouput = Eigen::Vector3f(0,0,0);
+
     std::vector<float> _nu1;
 
     float _fov_h;

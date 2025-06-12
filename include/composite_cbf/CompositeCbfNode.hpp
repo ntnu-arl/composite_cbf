@@ -8,6 +8,7 @@
 #include <geometry_msgs/Twist.h>
 #include <geometry_msgs/TwistStamped.h>
 #include <mavros_msgs/PositionTarget.h>
+#include <Eigen/Dense>
 
 #include "composite_cbf/CbfSafetyFilter.hpp"
 
@@ -21,10 +22,13 @@ private:
     void obstacleCb(const sensor_msgs::PointCloud2ConstPtr& msg);
     void odomCb(const nav_msgs::OdometryConstPtr& msg);
     void cmdCb(const geometry_msgs::TwistConstPtr& msg);
+    void ctrlCb(const ros::TimerEvent& event);
 
     CbfSafetyFilter _cbf;
 
     std::string _frame_body;
+    int _ctrl_freq;
+    float _wz_des;
 
     ros::NodeHandle _nh;
 

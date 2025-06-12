@@ -9,6 +9,7 @@ CompositeCbfNode::CompositeCbfNode()
 
     // params
     _nh.getParam("/composite_cbf/output_frame_viz", _frame_body);
+    _nh.getParam("/composite_cbf/output_frame_viz", _ctrl_freq);
     float fov_h;
     _nh.getParam("/composite_cbf/fov_h", fov_h);
     _cbf.setFovH(fov_h);
@@ -54,6 +55,53 @@ CompositeCbfNode::CompositeCbfNode()
     _command_pub_postarget = _nh.advertise<mavros_msgs::PositionTarget>("/composite_cbf/safe_cmd_postarget", 1);
     _output_viz_pub = _nh.advertise<geometry_msgs::TwistStamped>("/composite_cbf/output_viz", 1);
     _input_viz_pub = _nh.advertise<geometry_msgs::TwistStamped>("/composite_cbf/input_viz", 1);
+
+    // timer
+    float period = 1.f / (float) _ctrl_freq;
+    _nh.createTimer(ros::Duration(period), &CompositeCbfNode::ctrlCb, this);
+}
+
+
+void CompositeCbfNode::ctrlCb(const ros::TimerEvent& event) {
+    ROS_INFO("Timer callback triggered.");
+
+    // cbf filtering
+    double now = ros::Time::now().toSec();
+    Eigen::Vector3f acc_sp = _cbf.apply_filter(now);
+
+    // publish mavros msg
+    mavros_msgs::PositionTarget msg_safe_postarget;
+    msg_safe_postarget.header.stamp = ros::Time::now();
+    msg_safe_postarget.header.frame_id = _frame_body;
+    msg_safe_postarget.coordinate_frame = mavros_msgs::PositionTarget::FRAME_BODY_NED;
+    msg_safe_postarget.type_mask =
+        mavros_msgs::PositionTarget::IGNORE_PX |
+        mavros_msgs::PositionTarget::IGNORE_PY |
+        mavros_msgs::PositionTarget::IGNORE_PZ |
+        mavros_msgs::PositionTarget::IGNORE_VX |
+        mavros_msgs::PositionTarget::IGNORE_VY |
+        mavros_msgs::PositionTarget::IGNORE_VZ |
+        mavros_msgs::PositionTarget::IGNORE_YAW;
+    msg_safe_postarget.acceleration_or_force.x = acc_sp(0);
+    msg_safe_postarget.acceleration_or_force.y = acc_sp(1);
+    msg_safe_postarget.acceleration_or_force.z = acc_sp(2);
+    msg_safe_postarget.yaw_rate = _wz_des;
+    _command_pub_postarget.publish(msg_safe_postarget);
+
+    // publish twist msg
+    geometry_msgs::Twist msg_safe_twist;
+    msg_safe_twist.linear.x = acc_sp(0);
+    msg_safe_twist.linear.y = acc_sp(1);
+    msg_safe_twist.linear.z = acc_sp(2);
+    msg_safe_twist.angular.z = _wz_des;
+    _command_pub_twist.publish(msg_safe_twist);
+
+    // publish viz output msg
+    geometry_msgs::TwistStamped msg_viz_out;
+    msg_viz_out.header.stamp = ros::Time::now();
+    msg_viz_out.header.frame_id = _frame_body;
+    msg_viz_out.twist = msg_safe_twist;
+    _output_viz_pub.publish(msg_viz_out);
 }
 
 
@@ -110,6 +158,10 @@ void CompositeCbfNode::cmdCb(const geometry_msgs::TwistConstPtr& msg)
     );
     acceleration_setpoint = _cbf._R_BV * acceleration_setpoint;  // TODO for now joystick input is actually vehicle frame
 
+    double ts = ros::Time::now().toSec();
+    _cbf.setCmd(acceleration_setpoint, ts);
+    _wz_des = msg->angular.z;
+
     // publish viz input msg
     geometry_msgs::TwistStamped msg_viz_in;
     msg_viz_in.header.stamp = ros::Time::now();
@@ -118,43 +170,6 @@ void CompositeCbfNode::cmdCb(const geometry_msgs::TwistConstPtr& msg)
     msg_viz_in.twist.linear.y = acceleration_setpoint(1);
     msg_viz_in.twist.linear.z = acceleration_setpoint(2);
     _input_viz_pub.publish(msg_viz_in);
-
-    // cbf filtering
-    _cbf.filter(acceleration_setpoint);
-
-    // publish mavros msg
-    mavros_msgs::PositionTarget msg_safe_postarget;
-    msg_safe_postarget.header.stamp = ros::Time::now();
-    msg_safe_postarget.header.frame_id = _frame_body;
-    msg_safe_postarget.coordinate_frame = mavros_msgs::PositionTarget::FRAME_BODY_NED;
-    msg_safe_postarget.type_mask =
-        mavros_msgs::PositionTarget::IGNORE_PX |
-        mavros_msgs::PositionTarget::IGNORE_PY |
-        mavros_msgs::PositionTarget::IGNORE_PZ |
-        mavros_msgs::PositionTarget::IGNORE_VX |
-        mavros_msgs::PositionTarget::IGNORE_VY |
-        mavros_msgs::PositionTarget::IGNORE_VZ |
-        mavros_msgs::PositionTarget::IGNORE_YAW;
-    msg_safe_postarget.acceleration_or_force.x = acceleration_setpoint(0);
-    msg_safe_postarget.acceleration_or_force.y = acceleration_setpoint(1);
-    msg_safe_postarget.acceleration_or_force.z = acceleration_setpoint(2);
-    msg_safe_postarget.yaw_rate = msg->angular.z;
-    _command_pub_postarget.publish(msg_safe_postarget);
-
-    // publish twist msg
-    geometry_msgs::Twist msg_safe_twist;
-    msg_safe_twist.linear.x = acceleration_setpoint(0);
-    msg_safe_twist.linear.y = acceleration_setpoint(1);
-    msg_safe_twist.linear.z = acceleration_setpoint(2);
-    msg_safe_twist.angular.z = msg->angular.z;
-    _command_pub_twist.publish(msg_safe_twist);
-
-    // publish viz output msg
-    geometry_msgs::TwistStamped msg_viz_out;
-    msg_viz_out.header.stamp = ros::Time::now();
-    msg_viz_out.header.frame_id = _frame_body;
-    msg_viz_out.twist = msg_safe_twist;
-    _output_viz_pub.publish(msg_viz_out);
 }
 
 int main(int argc, char **argv)

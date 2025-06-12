@@ -2,10 +2,18 @@
 #include <ros/ros.h>
 #include <iostream>
 
-void CbfSafetyFilter::timeoutObstacles()
+void CbfSafetyFilter::setAttVel(Eigen::Matrix3f& R_WB, Eigen::Vector3f& body_vel)
 {
-    double now = ros::Time::now().toSec();
-    if (_obstacles.size() && std::abs(_ts_obs - now) > OBSTACLE_TIMEOUT_SEC)
+    double yaw = atan2(R_WB(1,0), R_WB(0,0));
+    Eigen::Matrix3f R_WV = Eigen::AngleAxisf(yaw, Eigen::Vector3f::UnitZ()).toRotationMatrix();
+    _R_BV = R_WB.transpose() * R_WV;
+
+    _body_velocity = body_vel;
+}
+
+void CbfSafetyFilter::timeoutObstacles(double ts_now)
+{
+    if (_obstacles.size() && std::abs(_ts_obs - ts_now) > OBSTACLE_TIMEOUT_SEC)
     {
         ROS_WARN("[composite_cbf] obstacle timeout - clearing buffer");
         _obstacles.clear();
@@ -20,24 +28,31 @@ void CbfSafetyFilter::setObstacles(std::vector<Eigen::Vector3f>& obstacles, doub
         _obstacles.push_back(obstacles[i]);
 }
 
-void CbfSafetyFilter::setAttVel(Eigen::Matrix3f& R_WB, Eigen::Vector3f& body_vel)
+void CbfSafetyFilter::timeoutCmd(double ts_now)
 {
-    double yaw = atan2(R_WB(1,0), R_WB(0,0));
-    Eigen::Matrix3f R_WV = Eigen::AngleAxisf(yaw, Eigen::Vector3f::UnitZ()).toRotationMatrix();
-    _R_BV = R_WB.transpose() * R_WV;
-
-    _body_velocity = body_vel;
+    if (std::abs(_ts_cmd - ts_now) > OBSTACLE_TIMEOUT_SEC)
+    {
+        ROS_WARN("[composite_cbf] input cmd timeout - defaulting to (0,0,0)");
+        _filtered_input.setZero();
+    }
 }
 
-void CbfSafetyFilter::filter(Eigen::Vector3f& body_acceleration_setpoint)
+void CbfSafetyFilter::setCmd(Eigen::Vector3f& body_acceleration_setpoint, double ts)
 {
-    // pass through if no obstacles are recorded
-    timeoutObstacles();
-    const size_t n = _obstacles.size();
-    if (n == 0) return;
-
-    // low pass acceleration setpoint
+    _ts_cmd = ts;
     _filtered_input = (1.f - _lp_gain_in) * _filtered_input + _lp_gain_in * body_acceleration_setpoint;
+}
+
+Eigen::Vector3f& CbfSafetyFilter::apply_filter(double ts_now)
+{
+    // timeout old inputs
+    timeoutCmd(ts_now);
+    timeoutObstacles(ts_now);
+
+    // pass through if no obstacles are recorded
+    const size_t n = _obstacles.size();
+    if (n == 0)
+        return _filtered_input;
 
     // composite collision CBF
     // nu1_i
@@ -75,7 +90,7 @@ void CbfSafetyFilter::filter(Eigen::Vector3f& body_acceleration_setpoint)
     Lg_h /= exp_sum;
 
     // L_{g}h(x) * u, u = k_n(x) = a
-    float Lg_h_u = Lg_h.dot(body_acceleration_setpoint);
+    float Lg_h_u = Lg_h.dot(_filtered_input);
 
     // horizontal FoV CBF
     Eigen::Vector3f e1(sin(_fov_h), cos(_fov_h), 0.f);
@@ -92,6 +107,8 @@ void CbfSafetyFilter::filter(Eigen::Vector3f& body_acceleration_setpoint)
     // Lg_h1 = Eigen::Vector3f(0,0,0);
     // Lg_h2 = Eigen::Vector3f(0,0,0);
 
+    Eigen::Vector3f acceleration_correction(0,0,0);
+
     if (_analytical_sol)
     {
         // analytical QP solution from: https://arxiv.org/abs/2206.03568
@@ -101,8 +118,8 @@ void CbfSafetyFilter::filter(Eigen::Vector3f& body_acceleration_setpoint)
             eta = -(Lf_h + Lg_h_u + _alpha*h) / Lg_h_mag2;
         }
 
-        Eigen::Vector3f acceleration_correction = (eta > 0.f ? eta : 0.f) * Lg_h;
-        _unfiltered_ouput = body_acceleration_setpoint + acceleration_correction;
+        acceleration_correction = (eta > 0.f ? eta : 0.f) * Lg_h;
+        _unfiltered_ouput = _filtered_input + acceleration_correction;
 
         // ========================
         // ========================
@@ -177,7 +194,7 @@ void CbfSafetyFilter::filter(Eigen::Vector3f& body_acceleration_setpoint)
     else
     {
         ROS_ERROR("[composite_cbf] QP soltion is currently not working with FoV constraints! no filter performed");
-        return;
+        return _filtered_input;
 
         // solve QP
         // quadratic cost x^T*H*x
@@ -208,36 +225,35 @@ void CbfSafetyFilter::filter(Eigen::Vector3f& body_acceleration_setpoint)
 
         real_t xOpt[NV];
         switch(qp_status) {
-            case SUCCESSFUL_RETURN: {
+            case SUCCESSFUL_RETURN:
+            {
                 qp.getPrimalSolution(xOpt);
-                Eigen::Vector3f acceleration_correction(xOpt[0], xOpt[1], xOpt[2]);
-                ROS_WARN("%f %f %f", acceleration_correction(0), acceleration_correction(1), acceleration_correction(2));
-                _unfiltered_ouput = body_acceleration_setpoint + acceleration_correction;
+                acceleration_correction = Eigen::Vector3f(xOpt[0], xOpt[1], xOpt[2]);
                 break;
             }
             case RET_MAX_NWSR_REACHED:
+            {
                 ROS_ERROR("[composite_cbf] QP could not be solved within the given number of working set recalculations");
-                _unfiltered_ouput = body_acceleration_setpoint;
                 break;
+            }
             default:
+            {
                 ROS_ERROR_STREAM("[composite_cbf] QP failed: returned " << qp_status);
-                _unfiltered_ouput = body_acceleration_setpoint;
                 break;
+            }
         }
     }
 
     // clamp and low pass acceleration output
+    _unfiltered_ouput = _filtered_input + acceleration_correction;
     clampAccSetpoint(_unfiltered_ouput);
-
     _filtered_ouput = (1.f - _lp_gain_out) * _filtered_ouput + _lp_gain_out * _unfiltered_ouput;
 
     if (std::isnan(_filtered_ouput(0)) or std::isnan(_filtered_ouput(1)) or std::isnan(_filtered_ouput(2)))
-    {
         _filtered_ouput.setZero();
-    }
 
     // rotate to vehicle frame and publish
-    body_acceleration_setpoint = _filtered_ouput;
+    return _filtered_ouput;
 }
 
 void CbfSafetyFilter::clampAccSetpoint(Eigen::Vector3f& acc) {
