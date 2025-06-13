@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<launch>
+    <node pkg="composite_cbf" type="composite_cbf_node" name="composite_cbf" output="screen">
+        <rosparam file="$(find composite_cbf)/config/kookaburra.yaml" command="load"/>
+        <remap from="/composite_cbf/obstacles" to="/cbf_pc_selector/output_pc"/>
+        <remap from="/composite_cbf/nominal_cmd" to="/cmd_joy"/>
+        <remap from="/composite_cbf/odometry" to="/msf_core/odometry"/>
+        <remap from="/composite_cbf/safe_cmd_postarget" to="/mavros/setpoint_raw/local"/>
+    </node>
+</launch>
