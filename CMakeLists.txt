@@ -33,5 +33,3 @@ target_link_libraries(
     ${catkin_LIBRARIES}
     ${qpOASES_LIBRARY_DIR}/libqpOASES.a
 )
-
-message(foo=${qpOASES_LIBRARY_DIR})

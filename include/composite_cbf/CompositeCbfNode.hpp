@@ -39,6 +39,7 @@ private:
     ros::Publisher _command_pub_postarget;
     ros::Publisher _output_viz_pub;
     ros::Publisher _input_viz_pub;
+    ros::Timer _cmd_timer;
 };
 
 #endif // COMPOSITE_CBF_HPP

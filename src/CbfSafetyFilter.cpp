@@ -30,7 +30,7 @@ void CbfSafetyFilter::setObstacles(std::vector<Eigen::Vector3f>& obstacles, doub
 
 void CbfSafetyFilter::timeoutCmd(double ts_now)
 {
-    if (std::abs(_ts_cmd - ts_now) > OBSTACLE_TIMEOUT_SEC)
+    if (!_filtered_input.isZero() && std::abs(_ts_cmd - ts_now) > OBSTACLE_TIMEOUT_SEC)
     {
         ROS_WARN("[composite_cbf] input cmd timeout - defaulting to (0,0,0)");
         _filtered_input.setZero();
@@ -249,10 +249,12 @@ Eigen::Vector3f& CbfSafetyFilter::apply_filter(double ts_now)
     clampAccSetpoint(_unfiltered_ouput);
     _filtered_ouput = (1.f - _lp_gain_out) * _filtered_ouput + _lp_gain_out * _unfiltered_ouput;
 
-    if (std::isnan(_filtered_ouput(0)) or std::isnan(_filtered_ouput(1)) or std::isnan(_filtered_ouput(2)))
+    if (_filtered_ouput.hasNaN())
+    {
+        ROS_ERROR("[composite_cbf] NaN detected is QP solution - defaulting to (0,0,0)");
         _filtered_ouput.setZero();
+    }
 
-    // rotate to vehicle frame and publish
     return _filtered_ouput;
 }
 

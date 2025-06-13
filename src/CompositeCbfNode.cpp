@@ -9,7 +9,7 @@ CompositeCbfNode::CompositeCbfNode()
 
     // params
     _nh.getParam("/composite_cbf/output_frame_viz", _frame_body);
-    _nh.getParam("/composite_cbf/output_frame_viz", _ctrl_freq);
+    _nh.getParam("/composite_cbf/ctrl_freq", _ctrl_freq);
     float fov_h;
     _nh.getParam("/composite_cbf/fov_h", fov_h);
     _cbf.setFovH(fov_h);
@@ -58,13 +58,11 @@ CompositeCbfNode::CompositeCbfNode()
 
     // timer
     float period = 1.f / (float) _ctrl_freq;
-    _nh.createTimer(ros::Duration(period), &CompositeCbfNode::ctrlCb, this);
+    _cmd_timer = _nh.createTimer(ros::Duration(period), &CompositeCbfNode::ctrlCb, this);
 }
 
 
 void CompositeCbfNode::ctrlCb(const ros::TimerEvent& event) {
-    ROS_INFO("Timer callback triggered.");
-
     // cbf filtering
     double now = ros::Time::now().toSec();
     Eigen::Vector3f acc_sp = _cbf.apply_filter(now);
