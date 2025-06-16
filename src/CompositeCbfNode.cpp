@@ -9,9 +9,6 @@ CompositeCbfNode::CompositeCbfNode()
     // params
     _nh.getParam("/composite_cbf/output_frame_viz", _frame_body);
     _nh.getParam("/composite_cbf/ctrl_freq", _ctrl_freq);
-    float fov_h;
-    _nh.getParam("/composite_cbf/fov_h", fov_h);
-    _cbf.setFovH(fov_h);
     float epsilon;
     _nh.getParam("/composite_cbf/epsilon", epsilon);
     _cbf.setEpsilon(epsilon);
@@ -27,12 +24,6 @@ CompositeCbfNode::CompositeCbfNode()
     float alpha;
     _nh.getParam("/composite_cbf/alpha", alpha);
     _cbf.setAlpha(alpha);
-    float fov_alpha;
-    _nh.getParam("/composite_cbf/fov_alpha", fov_alpha);
-    _cbf.setFovAlpha(fov_alpha);
-    float fov_slack;
-    _nh.getParam("/composite_cbf/fov_slack", fov_slack);
-    _cbf.setFovSlack(fov_slack);
     float lp_gain_in;
     _nh.getParam("/composite_cbf/lp_gain_in", lp_gain_in);
     _cbf.setLpGainIn(lp_gain_in);
@@ -45,14 +36,6 @@ CompositeCbfNode::CompositeCbfNode()
     float clamp_z;
     _nh.getParam("/composite_cbf/clamp_z", clamp_z);
     _cbf.setClampZ(clamp_z);
-    float gain_x, gain_y, gain_z;
-    _nh.getParam("/composite_cbf/gain_x", gain_x);
-    _nh.getParam("/composite_cbf/gain_y", gain_y);
-    _nh.getParam("/composite_cbf/gain_z", gain_z);
-    _cbf.setQpGains(gain_x, gain_y, gain_z);
-    bool analytical_sol;
-    _nh.getParam("/composite_cbf/analytical_sol", analytical_sol);
-    _cbf.setAnalytical(analytical_sol);
     float obs_to;
     _nh.getParam("/composite_cbf/obs_to", obs_to);
     _cbf.setObsTo(obs_to);

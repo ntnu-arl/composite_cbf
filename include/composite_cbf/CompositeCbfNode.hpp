@@ -8,7 +8,6 @@
 #include <geometry_msgs/Twist.h>
 #include <geometry_msgs/TwistStamped.h>
 #include <mavros_msgs/PositionTarget.h>
-#include <Eigen/Dense>
 
 #include "composite_cbf/CbfSafetyFilter.hpp"
 
