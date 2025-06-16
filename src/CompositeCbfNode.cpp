@@ -1,5 +1,4 @@
 #include "composite_cbf/CompositeCbfNode.hpp"
-
 #include <sensor_msgs/point_cloud2_iterator.h>
 
 
@@ -54,6 +53,12 @@ CompositeCbfNode::CompositeCbfNode()
     bool analytical_sol;
     _nh.getParam("/composite_cbf/analytical_sol", analytical_sol);
     _cbf.setAnalytical(analytical_sol);
+    float obs_to;
+    _nh.getParam("/composite_cbf/obs_to", obs_to);
+    _cbf.setObsTo(obs_to);
+    float cmd_to;
+    _nh.getParam("/composite_cbf/cmd_to", cmd_to);
+    _cbf.setCmdTo(cmd_to);
 
     // sub & pub
     _obstacle_sub = _nh.subscribe("/composite_cbf/obstacles", 1, &CompositeCbfNode::obstacleCb, this);
@@ -162,7 +167,7 @@ void CompositeCbfNode::cmdCb(const geometry_msgs::TwistConstPtr& msg)
         msg->linear.y,
         msg->linear.z
     );
-    acceleration_setpoint = _cbf._R_BV * acceleration_setpoint;  // TODO for now joystick input is actually vehicle frame
+    acceleration_setpoint = _cbf._R_BV * acceleration_setpoint;  // TODO for now input is considered vehicle frame
 
     double ts = ros::Time::now().toSec();
     _cbf.setCmd(acceleration_setpoint, ts);
@@ -177,6 +182,7 @@ void CompositeCbfNode::cmdCb(const geometry_msgs::TwistConstPtr& msg)
     msg_viz_in.twist.linear.z = acceleration_setpoint(2);
     _input_viz_pub.publish(msg_viz_in);
 }
+
 
 int main(int argc, char **argv)
 {

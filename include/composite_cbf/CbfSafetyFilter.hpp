@@ -10,9 +10,6 @@ using namespace qpOASES;
 
 #define NV 5  // nb of QP variables
 #define NC 5  // nb of QP consntraints
-#define CBF_MAX_OBSTACLES 200
-#define OBSTACLE_TIMEOUT_SEC 1  // 1 sec
-#define CMD_TIMEOUT_SEC 1  // 1 sec
 
 
 class CbfSafetyFilter
@@ -27,6 +24,8 @@ public:
     void setObstacles(std::vector<Eigen::Vector3f>& obstacles, double ts);
     void setAttVel(Eigen::Matrix3f& R_WB, Eigen::Vector3f& body_vel);
 
+    void setObsTo(float to) { _to_obs = to; }
+    void setCmdTo(float to) { _to_cmd = to; }
     void setFovH(float fov_h) { _fov_h = fov_h; }
     void setEpsilon(float epsilon) { _epsilon = epsilon; }
     void setPole0(float pole0) { _pole0 = pole0; }
@@ -48,8 +47,8 @@ private:
     void timeoutObstacles(double ts_now);
     void timeoutCmd(double ts_now);
 
-    double _ts_obs;
-    double _ts_cmd;
+    double _ts_obs, _to_obs;
+    double _ts_cmd, _to_cmd;
     std::vector<Eigen::Vector3f> _obstacles;
     Eigen::Vector3f _body_velocity;
 

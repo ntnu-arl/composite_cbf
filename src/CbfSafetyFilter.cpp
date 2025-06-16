@@ -1,6 +1,6 @@
 #include "composite_cbf/CbfSafetyFilter.hpp"
 #include <ros/ros.h>
-#include <iostream>
+
 
 void CbfSafetyFilter::setAttVel(Eigen::Matrix3f& R_WB, Eigen::Vector3f& body_vel)
 {
@@ -13,7 +13,7 @@ void CbfSafetyFilter::setAttVel(Eigen::Matrix3f& R_WB, Eigen::Vector3f& body_vel
 
 void CbfSafetyFilter::timeoutObstacles(double ts_now)
 {
-    if (_obstacles.size() && std::abs(_ts_obs - ts_now) > OBSTACLE_TIMEOUT_SEC)
+    if (_obstacles.size() && std::abs(_ts_obs - ts_now) > _to_obs)
     {
         ROS_WARN("[composite_cbf] obstacle timeout - clearing buffer");
         _obstacles.clear();
@@ -24,13 +24,13 @@ void CbfSafetyFilter::setObstacles(std::vector<Eigen::Vector3f>& obstacles, doub
 {
     _ts_obs = ts;
     _obstacles.clear();
-    for (int i=0; i < std::min((int)obstacles.size(), CBF_MAX_OBSTACLES); ++i)
+    for (size_t i=0; i < obstacles.size(); ++i)
         _obstacles.push_back(obstacles[i]);
 }
 
 void CbfSafetyFilter::timeoutCmd(double ts_now)
 {
-    if (!_filtered_input.isZero() && std::abs(_ts_cmd - ts_now) > OBSTACLE_TIMEOUT_SEC)
+    if (!_filtered_input.isZero() && std::abs(_ts_cmd - ts_now) > _to_cmd)
     {
         ROS_WARN("[composite_cbf] input cmd timeout - defaulting to (0,0,0)");
         _filtered_input.setZero();
@@ -105,9 +105,6 @@ Eigen::Vector3f& CbfSafetyFilter::apply_filter(double ts_now)
     float Lf_h2 = 0.f;
     Eigen::Vector3f Lg_h1 = e1;
     Eigen::Vector3f Lg_h2 = e2;
-    // uncomment below to disable fov constraints TODO make this an argument
-    // Lg_h1 = Eigen::Vector3f(0,0,0);
-    // Lg_h2 = Eigen::Vector3f(0,0,0);
 
     Eigen::Vector3f acceleration_correction(0,0,0);
 
