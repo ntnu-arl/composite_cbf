@@ -1,7 +1,9 @@
 # Composite CBF for Collision Avoidance
 
-This repository contains the ROS implementation of the Composite CBF Safety Filter for Collision Avoidance for Multirotors.
-It computes the optimally minimal modifications to an acceleration setpoint that prevent collisions.
+This repository contains the ROS implementation of the **Composite CBF Safety Filter for Collision Avoidance for Multirotors**.  
+It computes the optimally minimal modifications to an acceleration setpoint that prevent collisions based on velocity estimates and depth measurements.
+
+See our [paper video on YouTube!](https://www.youtube.com/watch?v=8nnfFECLjxw)
 
 The filter operates using real-time onboard range measurements and velocity estimation.
 Specifically, the filter operates on a downsampled point cloud from the onboard sensor mounted on the robot, including, e.g., Intel RealSense D455 and alike, small-scale Time-of-Flight sensors, or LiDARs.
@@ -23,7 +25,8 @@ We also release an [embedded implementation for PX4](https://github.com/ntnu-arl
 
 ### Installation
 
-Simply clone the repo in the `src` folder of your workspace and install with Catkin.
+* Clone the repo in the `src` folder of your workspace and install it using Catkin.
+* Install the [point cloud selector node](https://github.com/ntnu-arl/composite_cbf).
 
 ## Config
 
@@ -59,7 +62,7 @@ If you use this work in your research, please cite the following publication:
 }
 ```
 
-or, if you use our embedded implementation, please cite:
+Or, if you use our embedded implementation, please cite:
 
 ```bibtex
 @INPROCEEDINGS{misyats2025embedded,
