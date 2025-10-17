@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<launch>
+    <node pkg="composite_cbf" type="composite_cbf_node" name="composite_cbf" output="screen">
+        <rosparam file="$(find composite_cbf)/config/gbplanner_rotors.yaml" command="load"/>
+        <remap from="/composite_cbf/obstacles" to="/cbf_pc_selector/output_pc"/>
+        <remap from="/composite_cbf/nominal_cmd" to="/nmpc_acc"/>
+        <remap from="/composite_cbf/odometry" to="/rmf_obelix/ground_truth/odometry"/>
+        <remap from="/composite_cbf/safe_cmd_twist" to="/rmf_obelix/command/acc"/>
+    </node>
+</launch>

@@ -49,6 +49,10 @@ Eigen::Vector3f& CbfSafetyFilter::apply_filter(double ts_now)
     timeoutCmd(ts_now);
     timeoutObstacles(ts_now);
 
+    // remove any nan obstacles
+    _obstacles.erase(std::remove_if(_obstacles.begin(), _obstacles.end(),
+        [](const Eigen::Vector3f& obs) { return obs.hasNaN(); }), _obstacles.end());
+
     // pass through if no obstacles are recorded
     const size_t n = _obstacles.size();
     if (n == 0)
@@ -63,19 +67,25 @@ Eigen::Vector3f& CbfSafetyFilter::apply_filter(double ts_now)
         float nu_i0 = std::pow(_obstacles[i].norm(), 2) - (_epsilon * _epsilon);
         float Lf_nu_i0 = -2.f * _obstacles[i].dot(_body_velocity);
         _nu1.push_back(Lf_nu_i0 - _pole0 * nu_i0);
+        // std::cout << "nu1[" << i << "]: " << _nu1[i] << std::endl;
         // TODO compute tanh(nu1/gamma) only once and store to class array intead of nu1
     }
 
     // h(x)
     float exp_sum = 0.f;
     for(size_t i = 0; i < n; i++) {
+        // if(std::isnan(_nu1[i]))
+        //     continue;
         exp_sum += exp(-_kappa * saturate(_nu1[i] / _gamma));
     }
     float h = -(_gamma / _kappa) * logf(exp_sum);
+    // std::cout << "h: " << h << " exp_sum" << exp_sum << std::endl;
 
     // L_{f}h(x)
     float Lf_h = 0.f;
     for(size_t i = 0; i < n; i++) {
+        if(std::isnan(_nu1[i]))
+            continue;
         float Lf_nu_i1 = 2.f * (_body_velocity + _pole0 * _obstacles[i]).dot(_body_velocity);
         float lambda_i = exp(-_kappa * saturate(_nu1[i] / _gamma)) * saturateDerivative(_nu1[i] / _gamma);
         Lf_h += lambda_i * Lf_nu_i1;
@@ -85,6 +95,8 @@ Eigen::Vector3f& CbfSafetyFilter::apply_filter(double ts_now)
     // L_{g}h(x)z
     Eigen::Vector3f Lg_h(0.f, 0.f, 0.f);
     for(size_t i = 0; i < n; i++) {
+        if(std::isnan(_nu1[i]))
+            continue;
         Eigen::Vector3f Lg_nu_i1 = -2.f * _obstacles[i];
         float lambda_i = exp(-_kappa * saturate(_nu1[i] / _gamma)) * saturateDerivative(_nu1[i] / _gamma);
         Lg_h += lambda_i * Lg_nu_i1;
@@ -101,12 +113,22 @@ Eigen::Vector3f& CbfSafetyFilter::apply_filter(double ts_now)
         eta = -(Lf_h + Lg_h_u + _alpha*h) / Lg_h_mag2;
     }
 
+
+
     Eigen::Vector3f acceleration_correction = (eta > 0.f ? eta : 0.f) * Lg_h;
     _unfiltered_ouput = body_acc + acceleration_correction;
+
+    if(acceleration_correction.hasNaN())
+        ROS_ERROR("[composite_cbf] NaN detected in acceleration correction: %f, %f, %f", acceleration_correction(0), acceleration_correction(1), acceleration_correction(2));
 
     // clamp and low pass acceleration output
     clampAccSetpoint(_unfiltered_ouput);
     _filtered_ouput = (1.f - _lp_gain_out) * _filtered_ouput + _lp_gain_out * _unfiltered_ouput;
+    // check for NaN
+    if(_filtered_ouput.hasNaN())
+        ROS_ERROR("[composite_cbf] NaN detected in filtered output: %f, %f, %f", _filtered_ouput(0), _filtered_ouput(1), _filtered_ouput(2));
+    if(_unfiltered_ouput.hasNaN())
+        ROS_ERROR("[composite_cbf] NaN detected in unfiltered output: %f, %f, %f", _unfiltered_ouput(0), _unfiltered_ouput(1), _unfiltered_ouput(2));
 
     if (_filtered_ouput.hasNaN())
     {
