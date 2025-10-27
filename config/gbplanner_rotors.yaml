@@ -1,4 +1,4 @@
-epsilon: 0.25
+epsilon: 0.5
 pole_0: -2.5
 kappa: 80
 gamma: 40
@@ -6,8 +6,22 @@ alpha: 1.5
 lp_gain_in: 0.4
 lp_gain_out: 0.2
 clamp_xy: 3
-clamp_z: 3
+clamp_z: 2
 output_frame_viz: rmf_obelix/rmf_obelix/velodyne
-ctrl_freq: 100
+ctrl_freq: 50
 obs_to: 1  # obstacle timeout [sec]
 cmd_to: 1  # command timeout [sec]
+
+# epsilon: 0.9
+# pole_0: -2.5
+# kappa: 70
+# gamma: 40
+# alpha: 1.5
+# lp_gain_in: 0.4
+# lp_gain_out: 0.2
+# clamp_xy: 3
+# clamp_z: 3
+# output_frame_viz: rmf_obelix/rmf_obelix/velodyne
+# ctrl_freq: 50
+# obs_to: 1  # obstacle timeout [sec]
+# cmd_to: 1  # command timeout [sec]
