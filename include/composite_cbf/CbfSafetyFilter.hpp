@@ -1,10 +1,16 @@
-#ifndef CBF_SAFETY_FILTER_HPP
-#define CBF_SAFETY_FILTER_HPP
+#pragma once
 
 #include <cmath>
 #include <vector>
 #include <Eigen/Dense>
 
+
+enum CbfStatus : uint32_t {
+    CBF_OK               = 0,
+    CBF_WARN_OBS_TIMEOUT = 1u << 0,
+    CBF_WARN_CMD_TIMEOUT = 1u << 1,
+    CBF_ERR_NAN_OUTPUT   = 1u << 2,
+};
 
 class CbfSafetyFilter
 {
@@ -16,7 +22,7 @@ public:
 
     void setCmd(Eigen::Vector3f& body_acceleration_setpoint, double ts);
     void setObstacles(std::vector<Eigen::Vector3f>& obstacles, double ts);
-    void setAttVel(Eigen::Matrix3f& R_WB, Eigen::Vector3f& body_vel);
+    void setVel(Eigen::Vector3f& body_vel) { _body_velocity = body_vel; };
 
     void setObsTo(float to) { _to_obs = to; }
     void setCmdTo(float to) { _to_cmd = to; }
@@ -30,7 +36,8 @@ public:
     void setClampXY(float max_acc_xy) { _max_acc_xy = max_acc_xy; }
     void setClampZ(float max_acc_z) { _max_acc_z = max_acc_z; }
 
-    Eigen::Matrix3f _R_BV;
+    // pop (get and reset) status
+    uint32_t popStatus();
 
 private:
     void timeoutObstacles(double ts_now);
@@ -47,6 +54,9 @@ private:
 
     std::vector<float> _nu1;
 
+    uint32_t _status{CBF_OK};
+    void setStatus(uint32_t flag);
+
     float _epsilon;
     float _pole0;
     float _kappa;
@@ -62,5 +72,3 @@ private:
     float saturateDerivative(float x);
     float kappaFunction(float h, float alpha);
 };
-
-#endif // CBF_SAFETY_FILTER_HPP

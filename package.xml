@@ -1,16 +1,25 @@
 <?xml version="1.0"?>
-<package format="2">
-    <name>composite_cbf</name>
-    <version>1.0.0</version>
-    <description>The composite_cbf package.</description>
+<package format="3">
+  <name>composite_cbf</name>
+  <version>2.0.0</version>
+  <description>Composite CBF Collision Avoidance Safety Filter.</description>
 
-    <maintainer email="martin.jacquet@ntnu.no">Martin Jacquet</maintainer>
-    <license>TODO</license>
+  <maintainer email="martin.jacquet@ntnu.no">mjacquet</maintainer>
+  <license>BSD-3-Clause</license>
 
-    <buildtool_depend>catkin</buildtool_depend>
-    <depend>roscpp</depend>
-    <depend>sensor_msgs</depend>
-    <depend>geometry_msgs</depend>
-    <depend>nav_msgs</depend>
-    <depend>mavros_msgs</depend>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>rclcpp</depend>
+  <depend>geometry_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>tf2</depend>
+  <depend>tf2_ros</depend>
+  <depend>tf2_geometry_msgs</depend>
+
+  <depend>eigen</depend>
+  <depend>eigen3_cmake_module</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
 </package>

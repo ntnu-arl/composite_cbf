@@ -20,6 +20,7 @@ We also release an [embedded implementation for PX4](https://github.com/ntnu-arl
 
 * ROS Noetic
 * Eigen3
+* mavros-msgs
 
 ### Installation
 

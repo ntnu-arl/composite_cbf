@@ -1,22 +1,22 @@
 #include "composite_cbf/CbfSafetyFilter.hpp"
-#include <ros/ros.h>
 
 
-void CbfSafetyFilter::setAttVel(Eigen::Matrix3f& R_WB, Eigen::Vector3f& body_vel)
-{
-    double yaw = atan2(R_WB(1,0), R_WB(0,0));
-    Eigen::Matrix3f R_WV = Eigen::AngleAxisf(yaw, Eigen::Vector3f::UnitZ()).toRotationMatrix();
-    _R_BV = R_WB.transpose() * R_WV;
+uint32_t CbfSafetyFilter::popStatus() {
+    uint32_t tmp = _status;
+    _status = CBF_OK;
+    return tmp;
+}
 
-    _body_velocity = body_vel;
+void CbfSafetyFilter::setStatus(uint32_t flag) {
+    _status |= flag;
 }
 
 void CbfSafetyFilter::timeoutObstacles(double ts_now)
 {
     if (_obstacles.size() && std::abs(_ts_obs - ts_now) > _to_obs)
     {
-        ROS_WARN("[composite_cbf] obstacle timeout - clearing buffer");
         _obstacles.clear();
+        setStatus(CBF_WARN_OBS_TIMEOUT);
     }
 }
 
@@ -32,8 +32,8 @@ void CbfSafetyFilter::timeoutCmd(double ts_now)
 {
     if (!_filtered_input.isZero() && std::abs(_ts_cmd - ts_now) > _to_cmd)
     {
-        ROS_WARN("[composite_cbf] input cmd timeout - defaulting to (0,0,0)");
         _filtered_input.setZero();
+        setStatus(CBF_WARN_CMD_TIMEOUT);
     }
 }
 
@@ -110,8 +110,8 @@ Eigen::Vector3f& CbfSafetyFilter::apply_filter(double ts_now)
 
     if (_filtered_ouput.hasNaN())
     {
-        ROS_ERROR("[composite_cbf] NaN detected in QP solution - defaulting to (0,0,0)");
         _filtered_ouput.setZero();
+        setStatus(CBF_ERR_NAN_OUTPUT);
     }
 
     return _filtered_ouput;
