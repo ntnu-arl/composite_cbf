@@ -8,56 +8,38 @@ CompositeCbfNode::CompositeCbfNode()
 {
     _cbf = CbfSafetyFilter();
 
-    // params
-    this->declare_parameter<std::string>("output_frame_viz", _frame_body);
-    this->get_parameter("output_frame_viz", _frame_body);
-    this->declare_parameter<float>("ctrl_freq", _ctrl_freq);
-    this->get_parameter("ctrl_freq", _ctrl_freq);
-    float epsilon;
-    this->declare_parameter<float>("epsilon", 0.f);
-    this->get_parameter("epsilon", epsilon);
-    _cbf.setEpsilon(epsilon);
-    float pole_0;
-    this->declare_parameter<float>("pole_0", 0.f);
-    this->get_parameter("pole_0", pole_0);
-    _cbf.setPole0(pole_0);
-    float kappa;
-    this->declare_parameter<float>("kappa", 0.f);
-    this->get_parameter("kappa", kappa);
-    _cbf.setKappa(kappa);
-    float gamma;
-    this->declare_parameter<float>("gamma", 0.f);
-    this->get_parameter("gamma", gamma);
-    _cbf.setGamma(gamma);
-    float alpha;
-    this->declare_parameter<float>("alpha", 0.f);
-    this->get_parameter("alpha", alpha);
-    _cbf.setAlpha(alpha);
-    float lp_gain_in;
-    this->declare_parameter<float>("lp_gain_in", 0.f);
-    this->get_parameter("lp_gain_in", lp_gain_in);
-    _cbf.setLpGainIn(lp_gain_in);
-    float lp_gain_out;
-    this->declare_parameter<float>("lp_gain_out", 0.f);
-    this->get_parameter("lp_gain_out", lp_gain_out);
-    _cbf.setLpGainOut(lp_gain_out);
-    float clamp_xy;
-    this->declare_parameter<float>("clamp_xy", 0.f);
-    this->get_parameter("clamp_xy", clamp_xy);
-    _cbf.setClampXY(clamp_xy);
-    float clamp_z;
-    this->declare_parameter<float>("clamp_z", 0.f);
-    this->get_parameter("clamp_z", clamp_z);
-    _cbf.setClampZ(clamp_z);
-    float obs_to;
-    this->declare_parameter<float>("obs_to", 0.f);
-    this->get_parameter("obs_to", obs_to);
-    _cbf.setObsTo(obs_to);
-    float cmd_to;
-    this->declare_parameter<float>("cmd_to", 0.f);
-    this->get_parameter("cmd_to", cmd_to);
-    _cbf.setCmdTo(cmd_to);
+    // load config
+    this->declare_parameter<std::string>("output_frame_viz");
+    this->declare_parameter<float>("ctrl_freq");
+    this->declare_parameter<float>("epsilon");
+    this->declare_parameter<float>("pole_0");
+    this->declare_parameter<float>("kappa");
+    this->declare_parameter<float>("gamma");
+    this->declare_parameter<float>("alpha");
+    this->declare_parameter<float>("lp_gain_in");
+    this->declare_parameter<float>("lp_gain_out");
+    this->declare_parameter<float>("max_acc_xy");
+    this->declare_parameter<float>("clamp_z");
+    this->declare_parameter<float>("obs_to");
+    this->declare_parameter<float>("cmd_to");
 
+    this->get_parameter("output_frame_viz");
+    this->get_parameter("ctrl_freq", _ctrl_freq);
+
+    CbfConfig cfg;
+    this->get_parameter("epsilon", cfg.epsilon);
+    this->get_parameter("pole_0", cfg.pole_0);
+    this->get_parameter("kappa", cfg.kappa);
+    this->get_parameter("gamma", cfg.gamma);
+    this->get_parameter("alpha", cfg.alpha);
+    this->get_parameter("lp_gain_in", cfg.lp_gain_in);
+    this->get_parameter("lp_gain_out", cfg.lp_gain_out);
+    this->get_parameter("max_acc_xy", cfg.max_acc_xy);
+    this->get_parameter("max_acc_z", cfg.max_acc_z);
+    this->get_parameter("obs_to", cfg.obs_to);
+    this->get_parameter("cmd_to", cfg.cmd_to);
+    _cbf.setConfig(cfg);
+    
     // sub & pub
     _command_pub_twist = this->create_publisher<geometry_msgs::msg::Twist>("/composite_cbf/safe_cmd_twist", 10);
     _command_pub_postarget = this->create_publisher<mavros_msgs::msg::PositionTarget>("/composite_cbf/safe_cmd_postarget", 10);
