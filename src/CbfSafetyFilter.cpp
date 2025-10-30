@@ -23,9 +23,7 @@ void CbfSafetyFilter::timeoutObstacles(double ts_now)
 void CbfSafetyFilter::setObstacles(std::vector<Eigen::Vector3f>& obstacles, double ts)
 {
     _ts_obs = ts;
-    _obstacles.clear();
-    for (size_t i=0; i < obstacles.size(); ++i)
-        _obstacles.push_back(obstacles[i]);
+    _obstacles = obstacles;
 }
 
 void CbfSafetyFilter::timeoutCmd(double ts_now)
@@ -59,7 +57,8 @@ Eigen::Vector3f& CbfSafetyFilter::apply_filter(double ts_now)
     // composite collision CBF
     // nu1_i
     _nu1_gamma.clear();
-    for(size_t i = 0; i < n; i++) {
+    for (size_t i = 0; i < n; i++)
+    {
         float nu_i0 = std::pow(_obstacles[i].norm(), 2) - (_cfg.epsilon * _cfg.epsilon);
         float Lf_nu_i0 = -2.f * _obstacles[i].dot(_body_velocity);
         _nu1_gamma.push_back((Lf_nu_i0 - _cfg.pole_0 * nu_i0) / _cfg.gamma);
@@ -68,14 +67,14 @@ Eigen::Vector3f& CbfSafetyFilter::apply_filter(double ts_now)
 
     // h(x)
     float exp_sum = 0.f;
-    for(size_t i = 0; i < n; i++) {
+    for (size_t i = 0; i < n; i++)
         exp_sum += exp(-_cfg.kappa * saturate(_nu1_gamma[i]));
-    }
     float h = -(_cfg.gamma / _cfg.kappa) * logf(exp_sum);
 
     // L_{f}h(x)
     float Lf_h = 0.f;
-    for(size_t i = 0; i < n; i++) {
+    for (size_t i = 0; i < n; i++)
+    {
         float Lf_nu_i1 = 2.f * (_body_velocity + _cfg.pole_0 * _obstacles[i]).dot(_body_velocity);
         float lambda_i = exp(-_cfg.kappa * saturate(_nu1_gamma[i])) * saturateDerivative(_nu1_gamma[i]);
         Lf_h += lambda_i * Lf_nu_i1;
@@ -84,7 +83,8 @@ Eigen::Vector3f& CbfSafetyFilter::apply_filter(double ts_now)
 
     // L_{g}h(x)z
     Eigen::Vector3f Lg_h(0.f, 0.f, 0.f);
-    for(size_t i = 0; i < n; i++) {
+    for (size_t i = 0; i < n; i++)
+    {
         Eigen::Vector3f Lg_nu_i1 = -2.f * _obstacles[i];
         float lambda_i = exp(-_cfg.kappa * saturate(_nu1_gamma[i])) * saturateDerivative(_nu1_gamma[i]);
         Lg_h += lambda_i * Lg_nu_i1;
@@ -97,9 +97,8 @@ Eigen::Vector3f& CbfSafetyFilter::apply_filter(double ts_now)
     // analytical QP solution from: https://arxiv.org/abs/2206.03568
     float eta = 0.f;
     float Lg_h_mag2 = std::pow(Lg_h.norm(), 2);
-    if (Lg_h_mag2 > 1e-5f) {
+    if (Lg_h_mag2 > 1e-5f)
         eta = -(Lf_h + Lg_h_u + _cfg.alpha*h) / Lg_h_mag2;
-    }
 
     Eigen::Vector3f acceleration_correction = (eta > 0.f ? eta : 0.f) * Lg_h;
     Eigen::Vector3f unfiltered_ouput = body_acc + acceleration_correction;

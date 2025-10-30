@@ -79,7 +79,11 @@ void CompositeCbfNode::obstacleCb(const sensor_msgs::msg::PointCloud2::SharedPtr
         memcpy(&y, point_ptr + msg->fields[1].offset, sizeof(float));
         memcpy(&z, point_ptr + msg->fields[2].offset, sizeof(float));
 
-        obstacles.push_back(Eigen::Vector3f(x, y, z));
+        Eigen::Vector3f v(x, y, z);
+        if (v.hasNaN())
+            RCLCPP_WARN(get_logger(), "NaN in input pointcloud, skipping");
+        else
+            obstacles.push_back(v);
     }
 
     double now = rclcpp::Time(msg->header.stamp).seconds();
