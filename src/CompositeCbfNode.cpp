@@ -150,7 +150,7 @@ void CompositeCbfNode::cmdCb(const geometry_msgs::TwistConstPtr& msg)
         msg->linear.y,
         msg->linear.z
     );
-    acceleration_setpoint = _cbf._R_BV * acceleration_setpoint;  // TODO for now input is considered vehicle frame
+    // acceleration_setpoint = _cbf._R_BV * acceleration_setpoint;  // TODO for now input is considered vehicle frame
 
     double ts = ros::Time::now().toSec();
     _cbf.setCmd(acceleration_setpoint, ts);
