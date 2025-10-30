@@ -1,13 +1,15 @@
-epsilon: 0.7
-pole_0: -2.5
-kappa: 70
-gamma: 40
-alpha: 2
-lp_gain_in: 0.4
-lp_gain_out: 0.6
-max_acc_xy: 3
-max_acc_z: 3
-output_frame_viz: rmf_owl/base_link
-ctrl_freq: 100
-obs_to: 1  # obstacle timeout [sec]
-cmd_to: 1  # command timeout [sec]
+composite_cbf_node:
+    ros__parameters:
+        epsilon: 0.7
+        pole_0: -2.5
+        kappa: 70.0
+        gamma: 40.0
+        alpha: 2.0
+        lp_gain_in: 0.4
+        lp_gain_out: 0.6
+        max_acc_xy: 3.0
+        max_acc_z: 3.0
+        output_frame_viz: rmf/base_link
+        ctrl_freq: 100.0
+        obs_to: 1.0  # obstacle timeout [sec]
+        cmd_to: 1.0  # command timeout [sec]

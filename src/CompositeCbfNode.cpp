@@ -9,21 +9,21 @@ CompositeCbfNode::CompositeCbfNode()
     _cbf = CbfSafetyFilter();
 
     // load config
-    this->declare_parameter<std::string>("output_frame_viz");
-    this->declare_parameter<float>("ctrl_freq");
-    this->declare_parameter<float>("epsilon");
-    this->declare_parameter<float>("pole_0");
-    this->declare_parameter<float>("kappa");
-    this->declare_parameter<float>("gamma");
-    this->declare_parameter<float>("alpha");
-    this->declare_parameter<float>("lp_gain_in");
-    this->declare_parameter<float>("lp_gain_out");
-    this->declare_parameter<float>("max_acc_xy");
-    this->declare_parameter<float>("clamp_z");
-    this->declare_parameter<float>("obs_to");
-    this->declare_parameter<float>("cmd_to");
+    this->declare_parameter<std::string>("output_frame_viz", "");
+    this->declare_parameter<float>("ctrl_freq", 0.f);
+    this->declare_parameter<float>("epsilon", 0.f);
+    this->declare_parameter<float>("pole_0", 0.f);
+    this->declare_parameter<float>("kappa", 0.f);
+    this->declare_parameter<float>("gamma", 0.f);
+    this->declare_parameter<float>("alpha", 0.f);
+    this->declare_parameter<float>("lp_gain_in", 0.f);
+    this->declare_parameter<float>("lp_gain_out", 0.f);
+    this->declare_parameter<float>("max_acc_xy", 0.f);
+    this->declare_parameter<float>("clamp_z", 0.f);
+    this->declare_parameter<float>("obs_to", 0.f);
+    this->declare_parameter<float>("cmd_to", 0.f);
 
-    this->get_parameter("output_frame_viz");
+    this->get_parameter("output_frame_viz", _frame_body);
     this->get_parameter("ctrl_freq", _ctrl_freq);
 
     CbfConfig cfg;
@@ -41,18 +41,18 @@ CompositeCbfNode::CompositeCbfNode()
     _cbf.setConfig(cfg);
     
     // sub & pub
-    _command_pub_twist = this->create_publisher<geometry_msgs::msg::Twist>("/composite_cbf/safe_cmd_twist", 10);
-    _command_pub_postarget = this->create_publisher<mavros_msgs::msg::PositionTarget>("/composite_cbf/safe_cmd_postarget", 10);
-    _output_viz_pub = this->create_publisher<geometry_msgs::msg::TwistStamped>("composite_cbf/output_viz", 10);
-    _input_viz_pub = this->create_publisher<geometry_msgs::msg::TwistStamped>("composite_cbf/input_viz", 10);
+    _command_pub_twist = this->create_publisher<geometry_msgs::msg::Twist>("~/safe_cmd_twist", 10);
+    _command_pub_postarget = this->create_publisher<mavros_msgs::msg::PositionTarget>("~/safe_cmd_postarget", 10);
+    _output_viz_pub = this->create_publisher<geometry_msgs::msg::TwistStamped>("~/output_viz", 10);
+    _input_viz_pub = this->create_publisher<geometry_msgs::msg::TwistStamped>("~/input_viz", 10);
 
     _obstacle_sub = this->create_subscription<sensor_msgs::msg::PointCloud2>(
-    "obstacles", rclcpp::SensorDataQoS(),
+    "~/obstacles", rclcpp::SensorDataQoS(),
     std::bind(&CompositeCbfNode::obstacleCb, this, _1));
     _odometry_sub = this->create_subscription<nav_msgs::msg::Odometry>(
-    "odom", 10, std::bind(&CompositeCbfNode::odometryCb, this, _1));
+    "~/odom", 10, std::bind(&CompositeCbfNode::odometryCb, this, _1));
     _command_sub = this->create_subscription<geometry_msgs::msg::Twist>(
-    "cmd_in", 10, std::bind(&CompositeCbfNode::commandCb, this, _1));
+    "~/cmd_in", 10, std::bind(&CompositeCbfNode::commandCb, this, _1));
 
     // timer
     const auto period = std::chrono::duration<double>(1.0 / std::max(1.f, _ctrl_freq));

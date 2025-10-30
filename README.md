@@ -5,7 +5,7 @@ It computes the optimally minimal modifications to an acceleration setpoint that
 
 The filter operates using real-time onboard range measurements and velocity estimation.
 Specifically, the filter operates on a downsampled point cloud from the onboard sensor mounted on the robot, including, e.g., Intel RealSense D455 and alike, small-scale Time-of-Flight sensors, or LiDARs.
-We release a point cloud selector node for generic depth / range sensors on [this dedicated repo](https://github.com/ntnu-arl/composite_cbf).
+We release a point cloud selector node for generic depth / range sensors on [this dedicated repo](https://github.com/ntnu-arl/cbf_pc_selector).
 
 The node implements the unconstrained-FoV case.
 It relies on computing an analytical solution to the underlying CBF-QP, which is computationally efficient.
@@ -14,19 +14,19 @@ We also release an [embedded implementation for PX4](https://github.com/ntnu-arl
 
 ## Installation
 
-> Note: A ROS2 implementation will be released soon. The current ROS1 version will remain as a separate branch.
-
 ### Requirements
 
-* ROS Noetic
-* Eigen3
+* ROS 2 (Tested on Humble)
 * mavros-msgs
+* Eigen3
 
 ### Installation
 
-Simply clone the repo in the `src` folder of your workspace and install with Catkin.
+Simply clone the repo in the `src` folder of your workspace and install with Colcon.
 
 ## Config
+
+The yaml config files are loaded as ROS2 parameters in the node.
 
 The CBF tuning is presented in [our paper, Section V.E](https://arxiv.org/html/2504.15850v1#S5).
 
@@ -39,11 +39,11 @@ We report here the table detailing the config files:
 | `gamma`       | [10, 100] | Reacts to farther obstacles   |
 | `alpha`       | [1, 3]    | Increased filter sensitivity  |
 | `pole_0`      | [-3, -1]  | Damped response               |
-| `lp_gain_out` | [0, 1]    | Lesser accel. smoothing       |
-| `clamp_xy`    | >0        | Lateral accel. clamping       |
-| `clamp_z`     | >0        | Vertical accel. clamping      |
-| `obs_to`      | >0        | Timeout [s] for old obstacles |
-| `cmd_to`      | >0        | Timeout [s] for old reference |
+| `lp_gain_out` | [0, 1]    | Lesser acc. smoothing         |
+| `max_acc_xy`  | >0        | Larger maximum output xy acc. |
+| `max_acc_z`   | >0        | Larger maximum output z acc.  |
+| `obs_to`      | >0        | Longer timeout for old input  |
+| `cmd_to`      | >0        | Longer timeout for old ref.   |
 
 
 ## Cite
