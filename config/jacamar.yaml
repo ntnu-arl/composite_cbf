@@ -5,8 +5,8 @@ gamma: 40
 alpha: 2
 lp_gain_in: 0.7
 lp_gain_out: 0.6
-clamp_xy: 3
-clamp_z: 1
+max_acc_xy: 3
+max_acc_z: 1
 output_frame_viz: base_link
 ctrl_freq: 100
 obs_to: 1  # obstacle timeout [sec]

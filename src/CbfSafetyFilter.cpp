@@ -1,22 +1,22 @@
 #include "composite_cbf/CbfSafetyFilter.hpp"
-#include <ros/ros.h>
 
 
-void CbfSafetyFilter::setAttVel(Eigen::Matrix3f& R_WB, Eigen::Vector3f& body_vel)
-{
-    double yaw = atan2(R_WB(1,0), R_WB(0,0));
-    Eigen::Matrix3f R_WV = Eigen::AngleAxisf(yaw, Eigen::Vector3f::UnitZ()).toRotationMatrix();
-    _R_BV = R_WB.transpose() * R_WV;
+uint32_t CbfSafetyFilter::popStatus() {
+    uint32_t tmp = _status;
+    _status = CBF_OK;
+    return tmp;
+}
 
-    _body_velocity = body_vel;
+void CbfSafetyFilter::setStatus(uint32_t flag) {
+    _status |= flag;
 }
 
 void CbfSafetyFilter::timeoutObstacles(double ts_now)
 {
-    if (_obstacles.size() && std::abs(_ts_obs - ts_now) > _to_obs)
+    if (_obstacles.size() && std::abs(_ts_obs - ts_now) > _cfg.obs_to)
     {
-        ROS_WARN("[composite_cbf] obstacle timeout - clearing buffer");
         _obstacles.clear();
+        setStatus(CBF_WARN_OBS_TIMEOUT);
     }
 }
 
@@ -30,17 +30,17 @@ void CbfSafetyFilter::setObstacles(std::vector<Eigen::Vector3f>& obstacles, doub
 
 void CbfSafetyFilter::timeoutCmd(double ts_now)
 {
-    if (!_filtered_input.isZero() && std::abs(_ts_cmd - ts_now) > _to_cmd)
+    if (!_filtered_input.isZero() && std::abs(_ts_cmd - ts_now) > _cfg.cmd_to)
     {
-        ROS_WARN("[composite_cbf] input cmd timeout - defaulting to (0,0,0)");
         _filtered_input.setZero();
+        setStatus(CBF_WARN_CMD_TIMEOUT);
     }
 }
 
 void CbfSafetyFilter::setCmd(Eigen::Vector3f& body_acceleration_setpoint, double ts)
 {
     _ts_cmd = ts;
-    _filtered_input = (1.f - _lp_gain_in) * _filtered_input + _lp_gain_in * body_acceleration_setpoint;
+    _filtered_input = (1.f - _cfg.lp_gain_in) * _filtered_input + _cfg.lp_gain_in * body_acceleration_setpoint;
 }
 
 Eigen::Vector3f& CbfSafetyFilter::apply_filter(double ts_now)
@@ -58,26 +58,26 @@ Eigen::Vector3f& CbfSafetyFilter::apply_filter(double ts_now)
 
     // composite collision CBF
     // nu1_i
-    _nu1.clear();
+    _nu1_gamma.clear();
     for(size_t i = 0; i < n; i++) {
-        float nu_i0 = std::pow(_obstacles[i].norm(), 2) - (_epsilon * _epsilon);
+        float nu_i0 = std::pow(_obstacles[i].norm(), 2) - (_cfg.epsilon * _cfg.epsilon);
         float Lf_nu_i0 = -2.f * _obstacles[i].dot(_body_velocity);
-        _nu1.push_back(Lf_nu_i0 - _pole0 * nu_i0);
+        _nu1_gamma.push_back((Lf_nu_i0 - _cfg.pole_0 * nu_i0) / _cfg.gamma);
         // TODO compute tanh(nu1/gamma) only once and store to class array intead of nu1
     }
 
     // h(x)
     float exp_sum = 0.f;
     for(size_t i = 0; i < n; i++) {
-        exp_sum += exp(-_kappa * saturate(_nu1[i] / _gamma));
+        exp_sum += exp(-_cfg.kappa * saturate(_nu1_gamma[i]));
     }
-    float h = -(_gamma / _kappa) * logf(exp_sum);
+    float h = -(_cfg.gamma / _cfg.kappa) * logf(exp_sum);
 
     // L_{f}h(x)
     float Lf_h = 0.f;
     for(size_t i = 0; i < n; i++) {
-        float Lf_nu_i1 = 2.f * (_body_velocity + _pole0 * _obstacles[i]).dot(_body_velocity);
-        float lambda_i = exp(-_kappa * saturate(_nu1[i] / _gamma)) * saturateDerivative(_nu1[i] / _gamma);
+        float Lf_nu_i1 = 2.f * (_body_velocity + _cfg.pole_0 * _obstacles[i]).dot(_body_velocity);
+        float lambda_i = exp(-_cfg.kappa * saturate(_nu1_gamma[i])) * saturateDerivative(_nu1_gamma[i]);
         Lf_h += lambda_i * Lf_nu_i1;
     }
     Lf_h /= exp_sum;
@@ -86,7 +86,7 @@ Eigen::Vector3f& CbfSafetyFilter::apply_filter(double ts_now)
     Eigen::Vector3f Lg_h(0.f, 0.f, 0.f);
     for(size_t i = 0; i < n; i++) {
         Eigen::Vector3f Lg_nu_i1 = -2.f * _obstacles[i];
-        float lambda_i = exp(-_kappa * saturate(_nu1[i] / _gamma)) * saturateDerivative(_nu1[i] / _gamma);
+        float lambda_i = exp(-_cfg.kappa * saturate(_nu1_gamma[i])) * saturateDerivative(_nu1_gamma[i]);
         Lg_h += lambda_i * Lg_nu_i1;
     }
     Lg_h /= exp_sum;
@@ -98,29 +98,29 @@ Eigen::Vector3f& CbfSafetyFilter::apply_filter(double ts_now)
     float eta = 0.f;
     float Lg_h_mag2 = std::pow(Lg_h.norm(), 2);
     if (Lg_h_mag2 > 1e-5f) {
-        eta = -(Lf_h + Lg_h_u + _alpha*h) / Lg_h_mag2;
+        eta = -(Lf_h + Lg_h_u + _cfg.alpha*h) / Lg_h_mag2;
     }
 
     Eigen::Vector3f acceleration_correction = (eta > 0.f ? eta : 0.f) * Lg_h;
-    _unfiltered_ouput = body_acc + acceleration_correction;
+    Eigen::Vector3f unfiltered_ouput = body_acc + acceleration_correction;
 
     // clamp and low pass acceleration output
-    clampAccSetpoint(_unfiltered_ouput);
-    _filtered_ouput = (1.f - _lp_gain_out) * _filtered_ouput + _lp_gain_out * _unfiltered_ouput;
+    clampAccSetpoint(unfiltered_ouput);
+    _filtered_ouput = (1.f - _cfg.lp_gain_out) * _filtered_ouput + _cfg.lp_gain_out * unfiltered_ouput;
 
     if (_filtered_ouput.hasNaN())
     {
-        ROS_ERROR("[composite_cbf] NaN detected in QP solution - defaulting to (0,0,0)");
         _filtered_ouput.setZero();
+        setStatus(CBF_ERR_NAN_OUTPUT);
     }
 
     return _filtered_ouput;
 }
 
 void CbfSafetyFilter::clampAccSetpoint(Eigen::Vector3f& acc) {
-    acc(0) = std::min(std::max(acc(0), -_max_acc_xy), _max_acc_xy);
-    acc(1) = std::min(std::max(acc(1), -_max_acc_xy), _max_acc_xy);
-    acc(2) = std::min(std::max(acc(2), -_max_acc_z), _max_acc_z);
+    acc(0) = std::min(std::max(acc(0), -_cfg.max_acc_xy), _cfg.max_acc_xy);
+    acc(1) = std::min(std::max(acc(1), -_cfg.max_acc_xy), _cfg.max_acc_xy);
+    acc(2) = std::min(std::max(acc(2), -_cfg.max_acc_z), _cfg.max_acc_z);
 }
 
 float CbfSafetyFilter::saturate(float x) {
