@@ -1,25 +1,25 @@
 <?xml version="1.0"?>
 <package format="3">
-  <name>composite_cbf</name>
-  <version>2.0.0</version>
-  <description>Composite CBF Collision Avoidance Safety Filter.</description>
+    <name>composite_cbf</name>
+    <version>2.0.0</version>
+    <description>Composite CBF Collision Avoidance Safety Filter.</description>
 
-  <maintainer email="martin.jacquet@ntnu.no">mjacquet</maintainer>
-  <license>BSD-3-Clause</license>
+    <maintainer email="martin.jacquet@ntnu.no">mjacquet</maintainer>
+    <license>BSD-3-Clause</license>
 
-  <buildtool_depend>ament_cmake</buildtool_depend>
+    <buildtool_depend>ament_cmake</buildtool_depend>
 
-  <depend>rclcpp</depend>
-  <depend>geometry_msgs</depend>
-  <depend>sensor_msgs</depend>
-  <depend>tf2</depend>
-  <depend>tf2_ros</depend>
-  <depend>tf2_geometry_msgs</depend>
+    <depend>rclcpp</depend>
+    <depend>geometry_msgs</depend>
+    <depend>sensor_msgs</depend>
+    <depend>tf2</depend>
+    <depend>tf2_ros</depend>
+    <depend>tf2_geometry_msgs</depend>
 
-  <depend>eigen</depend>
-  <depend>eigen3_cmake_module</depend>
+    <depend>eigen</depend>
+    <depend>eigen3_cmake_module</depend>
 
-  <export>
-    <build_type>ament_cmake</build_type>
-  </export>
+    <export>
+        <build_type>ament_cmake</build_type>
+    </export>
 </package>

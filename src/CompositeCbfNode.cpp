@@ -9,19 +9,19 @@ CompositeCbfNode::CompositeCbfNode()
     _cbf = CbfSafetyFilter();
 
     // load config
-    this->declare_parameter<std::string>("output_frame_viz", "");
-    this->declare_parameter<float>("ctrl_freq", 0.f);
-    this->declare_parameter<float>("epsilon", 0.f);
-    this->declare_parameter<float>("pole_0", 0.f);
-    this->declare_parameter<float>("kappa", 0.f);
-    this->declare_parameter<float>("gamma", 0.f);
-    this->declare_parameter<float>("alpha", 0.f);
-    this->declare_parameter<float>("lp_gain_in", 0.f);
-    this->declare_parameter<float>("lp_gain_out", 0.f);
-    this->declare_parameter<float>("max_acc_xy", 0.f);
-    this->declare_parameter<float>("clamp_z", 0.f);
-    this->declare_parameter<float>("obs_to", 0.f);
-    this->declare_parameter<float>("cmd_to", 0.f);
+    this->declare_parameter("output_frame_viz", "");
+    this->declare_parameter("ctrl_freq", 0.f);
+    this->declare_parameter("epsilon", 0.f);
+    this->declare_parameter("pole_0", 0.f);
+    this->declare_parameter("kappa", 0.f);
+    this->declare_parameter("gamma", 0.f);
+    this->declare_parameter("alpha", 0.f);
+    this->declare_parameter("lp_gain_in", 0.f);
+    this->declare_parameter("lp_gain_out", 0.f);
+    this->declare_parameter("max_acc_xy", 0.f);
+    this->declare_parameter("clamp_z", 0.f);
+    this->declare_parameter("obs_to", 0.f);
+    this->declare_parameter("cmd_to", 0.f);
 
     this->get_parameter("output_frame_viz", _frame_body);
     this->get_parameter("ctrl_freq", _ctrl_freq);

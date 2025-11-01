@@ -15,28 +15,28 @@ find_package(nav_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
 
 include_directories(
-  include
-  ${EIGEN3_INCLUDE_DIR}
+    include
+    ${EIGEN3_INCLUDE_DIR}
 )
 
 add_executable(composite_cbf_node src/CompositeCbfNode.cpp src/CbfSafetyFilter.cpp)
 
 ament_target_dependencies(composite_cbf_node
-  rclcpp
-  geometry_msgs
-  sensor_msgs
-  mavros_msgs
-  nav_msgs
+    rclcpp
+    geometry_msgs
+    sensor_msgs
+    mavros_msgs
+    nav_msgs
 )
 
 install(TARGETS composite_cbf_node
-  DESTINATION lib/${PROJECT_NAME}
+    DESTINATION lib/${PROJECT_NAME}
 )
 install(DIRECTORY include/
-  DESTINATION include
+    DESTINATION include
 )
 install(DIRECTORY launch config
-  DESTINATION share/${PROJECT_NAME}
+    DESTINATION share/${PROJECT_NAME}
 )
 
 ament_export_include_directories(include)
