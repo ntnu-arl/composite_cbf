@@ -19,7 +19,7 @@ CompositeCbfNode::CompositeCbfNode()
     this->declare_parameter("lp_gain_in", 0.f);
     this->declare_parameter("lp_gain_out", 0.f);
     this->declare_parameter("max_acc_xy", 0.f);
-    this->declare_parameter("clamp_z", 0.f);
+    this->declare_parameter("max_acc_z", 0.f);
     this->declare_parameter("obs_to", 0.f);
     this->declare_parameter("cmd_to", 0.f);
 
@@ -112,7 +112,7 @@ void CompositeCbfNode::commandCb(const geometry_msgs::msg::Twist::SharedPtr msg)
     _cbf.setCmd(acceleration_setpoint, now);
 
     _wz_des = msg->angular.z;
-
+ 
     // publish viz input msg
     geometry_msgs::msg::TwistStamped msg_viz_in;
     msg_viz_in.header.stamp = this->now();
