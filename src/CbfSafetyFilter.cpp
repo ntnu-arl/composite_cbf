@@ -98,7 +98,11 @@ Eigen::Vector3f& CbfSafetyFilter::apply_filter(double ts_now)
     float eta = 0.f;
     float Lg_h_mag2 = std::pow(Lg_h.norm(), 2);
     if (Lg_h_mag2 > 1e-5f)
-        eta = -(Lf_h + Lg_h_u + _cfg.alpha*h) / Lg_h_mag2;
+    {
+        float rho = _cfg.rho * (Lg_h.norm() + Lg_h_mag2);
+        eta = -(Lf_h + Lg_h_u + _cfg.alpha*h - rho) / Lg_h_mag2;
+    }
+
 
     Eigen::Vector3f acceleration_correction = (eta > 0.f ? eta : 0.f) * Lg_h;
     Eigen::Vector3f unfiltered_ouput = body_acc + acceleration_correction;

@@ -1,14 +1,14 @@
 composite_cbf_node:
     ros__parameters:
-        epsilon: 0.7
-        pole_0: -2.5
-        kappa: 70.0
+        epsilon: 0.4
+        pole_0: -2.0
+        kappa: 80.0
         gamma: 40.0
-        alpha: 2.0
+        alpha: 4.0
         lp_gain_in: 0.4
-        lp_gain_out: 0.6
+        lp_gain_out: 0.2
         max_acc_xy: 3.0
-        max_acc_z: 3.0
+        max_acc_z: 2.0
         output_frame_viz: rmf/base_link
         ctrl_freq: 100.0
         obs_to: 1.0  # obstacle timeout [sec]

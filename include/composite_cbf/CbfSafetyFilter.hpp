@@ -24,6 +24,7 @@ struct CbfConfig {
     float max_acc_z = 3.f;
     float obs_to = 1.f;
     float cmd_to = 1.f;
+    float rho = 1.f;
 };
 
 class CbfSafetyFilter
