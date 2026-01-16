@@ -41,9 +41,25 @@ void CbfSafetyFilter::setCmd(Eigen::Vector3f& body_acceleration_setpoint, double
     _filtered_input = (1.f - _cfg.lp_gain_in) * _filtered_input + _cfg.lp_gain_in * body_acceleration_setpoint;
 }
 
+float CbfSafetyFilter::class_k_fun(float h) {
+    float sq_term = std::pow(h, 2) + std::pow(_cfg.sigma, 2);
+    float exp = (_cfg.power - 1.0) / 2.0;
+    return _cfg.gain * h * std::pow(sq_term, exp);
+}
+
+float CbfSafetyFilter::class_k_fun_grad(float h) {
+    float sq_term = std::pow(h, 2) + std::pow(_cfg.sigma, 2);
+    float term1_exp = (_cfg.power - 3.0) / 2.0;
+    float term1 = std::pow(sq_term, term1_exp);
+    float term2 = _cfg.power * std::pow(h, 2) + _cfg.sigma * _cfg.sigma;
+    return _cfg.gain * term1 * term2;
+}
+
+
+
 Eigen::Vector3f& CbfSafetyFilter::apply_filter(double ts_now)
 {
-    // timeout old inputs
+    // timeout old inputs 
     timeoutCmd(ts_now);
     timeoutObstacles(ts_now);
 
@@ -61,7 +77,7 @@ Eigen::Vector3f& CbfSafetyFilter::apply_filter(double ts_now)
     {
         float nu_i0 = std::pow(_obstacles[i].norm(), 2) - (_cfg.epsilon * _cfg.epsilon);
         float Lf_nu_i0 = -2.f * _obstacles[i].dot(_body_velocity);
-        _nu1_gamma.push_back((Lf_nu_i0 - _cfg.pole_0 * nu_i0) / _cfg.gamma);
+        _nu1_gamma.push_back((Lf_nu_i0 + class_k_fun( nu_i0)) / _cfg.gamma);
         // TODO compute tanh(nu1/gamma) only once and store to class array intead of nu1
     }
 
@@ -74,8 +90,9 @@ Eigen::Vector3f& CbfSafetyFilter::apply_filter(double ts_now)
     // L_{f}h(x)
     float Lf_h = 0.f;
     for (size_t i = 0; i < n; i++)
-    {
-        float Lf_nu_i1 = 2.f * (_body_velocity + _cfg.pole_0 * _obstacles[i]).dot(_body_velocity);
+    {   
+         float nu_i0 = std::pow(_obstacles[i].norm(), 2) - (_cfg.epsilon * _cfg.epsilon); // TODO: avoid recomputing this term
+        float Lf_nu_i1 = 2.f * (_body_velocity - class_k_fun_grad(nu_i0) * _obstacles[i]).dot(_body_velocity);
         float lambda_i = exp(-_cfg.kappa * saturate(_nu1_gamma[i])) * saturateDerivative(_nu1_gamma[i]);
         Lf_h += lambda_i * Lf_nu_i1;
     }
