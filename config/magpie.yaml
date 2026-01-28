@@ -1,0 +1,18 @@
+composite_cbf:
+    ros__parameters:
+        epsilon: 0.3
+        gain: 3.0
+        power: 0.8
+        sigma: 0.3
+        kappa: 80.0
+        gamma: 40.0
+        alpha: 4.0
+        lp_gain_in: 0.5
+        lp_gain_out: 0.5
+        max_acc_xy: 3.0
+        max_acc_z: 2.0
+        output_frame_viz: mimosa_body
+        ctrl_freq: 50.0
+        obs_to: 1.0  # obstacle timeout [sec]
+        cmd_to: 1.0  # command timeout [sec]
+        rho: 0.5
