@@ -12,14 +12,14 @@ def generate_launch_description():
             parameters=[
                 os.path.join(
                     get_package_share_directory('composite_cbf'),
-                    'config', 'magpie.yaml'
+                    'config', 'magpie_rl.yaml'
                 ),
             ],
             remappings=[
                 ('~/obstacles', '/cbf_pc_selector/output_pc'),
                 ('~/odom', '/msf_core/odometry_50hz'),
                 # ('~/cmd_in', '/cmd_joy'),
-                ('~/cmd_in', '/sdf_nmpc/cmd_acc'),
+                ('~/cmd_in', '/cmd_vel_filtered'),
                 ('~/safe_cmd_postarget', '/mavros/setpoint_raw/local'),
             ],
             output='screen'
