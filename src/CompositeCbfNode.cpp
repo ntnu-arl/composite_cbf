@@ -12,7 +12,9 @@ CompositeCbfNode::CompositeCbfNode()
     this->declare_parameter("output_frame_viz", "");
     this->declare_parameter("ctrl_freq", 0.f);
     this->declare_parameter("epsilon", 0.f);
-    this->declare_parameter("pole_0", 0.f);
+    this->declare_parameter("gain", 0.f);
+    this->declare_parameter("power", 1.f);
+    this->declare_parameter("sigma", 1.f);  
     this->declare_parameter("kappa", 0.f);
     this->declare_parameter("gamma", 0.f);
     this->declare_parameter("alpha", 0.f);
@@ -22,13 +24,16 @@ CompositeCbfNode::CompositeCbfNode()
     this->declare_parameter("max_acc_z", 0.f);
     this->declare_parameter("obs_to", 0.f);
     this->declare_parameter("cmd_to", 0.f);
+    this->declare_parameter("rho", 1.f);
 
     this->get_parameter("output_frame_viz", _frame_body);
     this->get_parameter("ctrl_freq", _ctrl_freq);
 
     CbfConfig cfg;
     this->get_parameter("epsilon", cfg.epsilon);
-    this->get_parameter("pole_0", cfg.pole_0);
+    this->get_parameter("gain", cfg.gain);
+    this->get_parameter("power", cfg.power);
+    this->get_parameter("sigma", cfg.sigma);
     this->get_parameter("kappa", cfg.kappa);
     this->get_parameter("gamma", cfg.gamma);
     this->get_parameter("alpha", cfg.alpha);
@@ -38,6 +43,7 @@ CompositeCbfNode::CompositeCbfNode()
     this->get_parameter("max_acc_z", cfg.max_acc_z);
     this->get_parameter("obs_to", cfg.obs_to);
     this->get_parameter("cmd_to", cfg.cmd_to);
+    this->get_parameter("rho", cfg.rho);
     _cbf.setConfig(cfg);
     
     // sub & pub

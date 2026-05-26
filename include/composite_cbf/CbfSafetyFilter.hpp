@@ -14,7 +14,9 @@ enum CbfStatus : uint32_t {
 
 struct CbfConfig {
     float epsilon = 0.7f;
-    float pole_0 = -2.5f;
+    float gain = 2.5f;
+    float power = 1.f;
+    float sigma = 1.f;
     float kappa = 70.f;
     float gamma = 40.f;
     float alpha = 2.f;
@@ -24,6 +26,7 @@ struct CbfConfig {
     float max_acc_z = 3.f;
     float obs_to = 1.f;
     float cmd_to = 1.f;
+    float rho = 1.f;
 };
 
 class CbfSafetyFilter
@@ -67,4 +70,7 @@ private:
     float saturate(float x);
     float saturateDerivative(float x);
     float kappaFunction(float h, float alpha);
+
+    float class_k_fun(float h);
+    float class_k_fun_grad(float h);
 };
